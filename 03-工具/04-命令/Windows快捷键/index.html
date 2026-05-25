@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="本文整理了 Windows 系统中常用且高频的快捷键与运行命令，包括文件管理、窗口切换、分屏操作、截图、浏览器、CMD &#x2F; PowerShell 等常见场景。   内容按功能分类，涵盖日常办公、开发运维、多任务处理等实际使用需求，并补充了一些隐藏但非常实用的系统快捷操作，适合作为 Windows 效率工具速查手册长期收藏。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Windows 常用快捷键">
+<meta property="og:url" content="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%BF%AB%E6%8D%B7%E9%94%AE/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="本文整理了 Windows 系统中常用且高频的快捷键与运行命令，包括文件管理、窗口切换、分屏操作、截图、浏览器、CMD &#x2F; PowerShell 等常见场景。   内容按功能分类，涵盖日常办公、开发运维、多任务处理等实际使用需求，并补充了一些隐藏但非常实用的系统快捷操作，适合作为 Windows 效率工具速查手册长期收藏。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-09-02T01:10:51.000Z">
+<meta property="article:modified_time" content="2026-05-25T03:39:59.540Z">
+<meta property="article:author" content="mrko">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%BF%AB%E6%8D%B7%E9%94%AE/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%BF%AB%E6%8D%B7%E9%94%AE/","path":"03-工具/04-命令/Windows快捷键/","title":"Windows 常用快捷键"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Windows 常用快捷键 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Windows-%E5%B8%B8%E7%94%A8%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="nav-number">1.</span> <span class="nav-text">Windows 常用快捷键</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E6%9C%80%E5%B8%B8%E7%94%A8"><span class="nav-number">2.</span> <span class="nav-text">一、最常用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="nav-number">3.</span> <span class="nav-text">二、文件管理快捷键</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E7%AA%97%E5%8F%A3%E7%AE%A1%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text">三、窗口管理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B1%8F"><span class="nav-number">4.1.</span> <span class="nav-text">分屏</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E6%A1%8C%E9%9D%A2"><span class="nav-number">4.2.</span> <span class="nav-text">虚拟桌面</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%88%AA%E5%9B%BE%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="nav-number">5.</span> <span class="nav-text">四、截图快捷键</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E6%B5%8F%E8%A7%88%E5%99%A8%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="nav-number">6.</span> <span class="nav-text">五、浏览器快捷键</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%AD%E3%80%81CMD-PowerShell-%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="nav-number">7.</span> <span class="nav-text">六、CMD &#x2F; PowerShell 快捷键</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E9%9A%90%E8%97%8F%E4%BD%86%E8%B6%85%E5%AE%9E%E7%94%A8"><span class="nav-number">8.</span> <span class="nav-text">七、隐藏但超实用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E8%BF%90%E8%A1%8C%EF%BC%88Win-R%EF%BC%89%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4"><span class="nav-number">9.</span> <span class="nav-text">八、运行（Win + R）常用命令</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%BF%AB%E6%8D%B7%E9%94%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Windows 常用快捷键 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Windows 常用快捷键
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-09-02 09:10:51" itemprop="dateCreated datePublished" datetime="2025-09-02T09:10:51+08:00">2025-09-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/" itemprop="url" rel="index"><span itemprop="name">03-工具</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">04-命令</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>667</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>2 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>本文整理了 Windows 系统中常用且高频的快捷键与运行命令，包括文件管理、窗口切换、分屏操作、截图、浏览器、CMD &#x2F; PowerShell 等常见场景。</p>
+</blockquote>
+<blockquote>
+<p>内容按功能分类，涵盖日常办公、开发运维、多任务处理等实际使用需求，并补充了一些隐藏但非常实用的系统快捷操作，适合作为 Windows 效率工具速查手册长期收藏。</p>
+</blockquote>
+<span id="more"></span>
+
+<h1 id="Windows-常用快捷键"><a href="#Windows-常用快捷键" class="headerlink" title="Windows 常用快捷键"></a>Windows 常用快捷键</h1><p>按使用场景整理，很多都是日常高频。</p>
+<hr>
+<h1 id="一、最常用"><a href="#一、最常用" class="headerlink" title="一、最常用"></a>一、最常用</h1><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Ctrl + C</code></td>
+<td>复制</td>
+</tr>
+<tr>
+<td><code>Ctrl + V</code></td>
+<td>粘贴</td>
+</tr>
+<tr>
+<td><code>Ctrl + X</code></td>
+<td>剪切</td>
+</tr>
+<tr>
+<td><code>Ctrl + Z</code></td>
+<td>撤销</td>
+</tr>
+<tr>
+<td><code>Ctrl + Y</code></td>
+<td>重做</td>
+</tr>
+<tr>
+<td><code>Ctrl + A</code></td>
+<td>全选</td>
+</tr>
+<tr>
+<td><code>Ctrl + S</code></td>
+<td>保存</td>
+</tr>
+<tr>
+<td><code>Ctrl + F</code></td>
+<td>查找</td>
+</tr>
+<tr>
+<td><code>Alt + Tab</code></td>
+<td>切换窗口</td>
+</tr>
+<tr>
+<td><code>Win + D</code></td>
+<td>显示桌面</td>
+</tr>
+<tr>
+<td><code>Win + E</code></td>
+<td>打开资源管理器</td>
+</tr>
+<tr>
+<td><code>Win + L</code></td>
+<td>锁屏</td>
+</tr>
+<tr>
+<td><code>Win + R</code></td>
+<td>打开运行</td>
+</tr>
+<tr>
+<td><code>Win + I</code></td>
+<td>设置</td>
+</tr>
+<tr>
+<td><code>Win + Tab</code></td>
+<td>任务视图</td>
+</tr>
+<tr>
+<td><code>Ctrl + Shift + Esc</code></td>
+<td>任务管理器</td>
+</tr>
+<tr>
+<td><code>Alt + F4</code></td>
+<td>关闭窗口</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="二、文件管理快捷键"><a href="#二、文件管理快捷键" class="headerlink" title="二、文件管理快捷键"></a>二、文件管理快捷键</h1><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>F2</code></td>
+<td>重命名</td>
+</tr>
+<tr>
+<td><code>Delete</code></td>
+<td>删除</td>
+</tr>
+<tr>
+<td><code>Shift + Delete</code></td>
+<td>永久删除</td>
+</tr>
+<tr>
+<td><code>Ctrl + N</code></td>
+<td>新建窗口</td>
+</tr>
+<tr>
+<td><code>Ctrl + Shift + N</code></td>
+<td>新建文件夹</td>
+</tr>
+<tr>
+<td><code>Alt + Enter</code></td>
+<td>属性</td>
+</tr>
+<tr>
+<td><code>Backspace</code></td>
+<td>返回上一级</td>
+</tr>
+<tr>
+<td><code>Alt + ↑</code></td>
+<td>上一级目录</td>
+</tr>
+<tr>
+<td><code>Ctrl + 鼠标滚轮</code></td>
+<td>调整图标大小</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="三、窗口管理"><a href="#三、窗口管理" class="headerlink" title="三、窗口管理"></a>三、窗口管理</h1><h2 id="分屏"><a href="#分屏" class="headerlink" title="分屏"></a>分屏</h2><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Win + ←</code></td>
+<td>窗口靠左</td>
+</tr>
+<tr>
+<td><code>Win + →</code></td>
+<td>窗口靠右</td>
+</tr>
+<tr>
+<td><code>Win + ↑</code></td>
+<td>最大化</td>
+</tr>
+<tr>
+<td><code>Win + ↓</code></td>
+<td>最小化</td>
+</tr>
+<tr>
+<td><code>Win + Shift + ←/→</code></td>
+<td>窗口移到另一显示器</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="虚拟桌面"><a href="#虚拟桌面" class="headerlink" title="虚拟桌面"></a>虚拟桌面</h2><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Win + Ctrl + D</code></td>
+<td>新建桌面</td>
+</tr>
+<tr>
+<td><code>Win + Ctrl + ←/→</code></td>
+<td>切换桌面</td>
+</tr>
+<tr>
+<td><code>Win + Ctrl + F4</code></td>
+<td>关闭桌面</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="四、截图快捷键"><a href="#四、截图快捷键" class="headerlink" title="四、截图快捷键"></a>四、截图快捷键</h1><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>PrtSc</code></td>
+<td>全屏截图</td>
+</tr>
+<tr>
+<td><code>Alt + PrtSc</code></td>
+<td>当前窗口截图</td>
+</tr>
+<tr>
+<td><code>Win + Shift + S</code></td>
+<td>截图工具</td>
+</tr>
+<tr>
+<td><code>Win + PrtSc</code></td>
+<td>自动保存截图</td>
+</tr>
+</tbody></table>
+<p>截图保存位置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">图片\屏幕截图</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h1 id="五、浏览器快捷键"><a href="#五、浏览器快捷键" class="headerlink" title="五、浏览器快捷键"></a>五、浏览器快捷键</h1><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Ctrl + T</code></td>
+<td>新标签页</td>
+</tr>
+<tr>
+<td><code>Ctrl + W</code></td>
+<td>关闭标签</td>
+</tr>
+<tr>
+<td><code>Ctrl + Shift + T</code></td>
+<td>恢复关闭标签</td>
+</tr>
+<tr>
+<td><code>Ctrl + Tab</code></td>
+<td>切换标签</td>
+</tr>
+<tr>
+<td><code>Ctrl + L</code></td>
+<td>定位地址栏</td>
+</tr>
+<tr>
+<td><code>Ctrl + D</code></td>
+<td>收藏网页</td>
+</tr>
+<tr>
+<td><code>Ctrl + J</code></td>
+<td>下载列表</td>
+</tr>
+<tr>
+<td><code>Ctrl + H</code></td>
+<td>历史记录</td>
+</tr>
+<tr>
+<td><code>Ctrl + +</code></td>
+<td>放大</td>
+</tr>
+<tr>
+<td><code>Ctrl + -</code></td>
+<td>缩小</td>
+</tr>
+<tr>
+<td><code>Ctrl + 0</code></td>
+<td>恢复缩放</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="六、CMD-PowerShell-快捷键"><a href="#六、CMD-PowerShell-快捷键" class="headerlink" title="六、CMD &#x2F; PowerShell 快捷键"></a>六、CMD &#x2F; PowerShell 快捷键</h1><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>↑ ↓</code></td>
+<td>历史命令</td>
+</tr>
+<tr>
+<td><code>Tab</code></td>
+<td>自动补全</td>
+</tr>
+<tr>
+<td><code>Ctrl + C</code></td>
+<td>中断程序</td>
+</tr>
+<tr>
+<td><code>cls</code></td>
+<td>清屏</td>
+</tr>
+<tr>
+<td><code>Ctrl + Shift + C/V</code></td>
+<td>新终端复制粘贴</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="七、隐藏但超实用"><a href="#七、隐藏但超实用" class="headerlink" title="七、隐藏但超实用"></a>七、隐藏但超实用</h1><table>
+<thead>
+<tr>
+<th>快捷键</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Win + V</code></td>
+<td>剪贴板历史</td>
+</tr>
+<tr>
+<td><code>Win + .</code></td>
+<td>Emoji 表情</td>
+</tr>
+<tr>
+<td><code>Win + Shift + S</code></td>
+<td>区域截图</td>
+</tr>
+<tr>
+<td><code>Win + X</code></td>
+<td>高级菜单</td>
+</tr>
+<tr>
+<td><code>Win + Pause</code></td>
+<td>系统信息</td>
+</tr>
+<tr>
+<td><code>Win + K</code></td>
+<td>投屏</td>
+</tr>
+<tr>
+<td><code>Win + P</code></td>
+<td>多屏切换</td>
+</tr>
+<tr>
+<td><code>Win + Space</code></td>
+<td>输入法切换</td>
+</tr>
+<tr>
+<td><code>Ctrl + Shift + Esc</code></td>
+<td>秒开任务管理器</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="八、运行（Win-R）常用命令"><a href="#八、运行（Win-R）常用命令" class="headerlink" title="八、运行（Win + R）常用命令"></a>八、运行（Win + R）常用命令</h1><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cmd</code></td>
+<td>命令行</td>
+</tr>
+<tr>
+<td><code>powershell</code></td>
+<td>PowerShell</td>
+</tr>
+<tr>
+<td><code>wt</code></td>
+<td>Windows Terminal</td>
+</tr>
+<tr>
+<td><code>taskmgr</code></td>
+<td>任务管理器</td>
+</tr>
+<tr>
+<td><code>services.msc</code></td>
+<td>服务</td>
+</tr>
+<tr>
+<td><code>devmgmt.msc</code></td>
+<td>设备管理器</td>
+</tr>
+<tr>
+<td><code>regedit</code></td>
+<td>注册表</td>
+</tr>
+<tr>
+<td><code>msconfig</code></td>
+<td>系统配置</td>
+</tr>
+<tr>
+<td><code>control</code></td>
+<td>控制面板</td>
+</tr>
+<tr>
+<td><code>ncpa.cpl</code></td>
+<td>网络连接</td>
+</tr>
+<tr>
+<td><code>appwiz.cpl</code></td>
+<td>程序卸载</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%B8%B8%E8%A7%81%E5%91%BD%E4%BB%A4/" rel="prev" title="Windows常用命令">
+                  <i class="fa fa-angle-left"></i> Windows常用命令
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/07-Other/%E5%88%B6%E9%80%A0%E4%B8%93%E4%B8%9A%E6%9C%AF%E8%AF%AD/" rel="next" title="制造专业术语">
+                  制造专业术语 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">27k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:38</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

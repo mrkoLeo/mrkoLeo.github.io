@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="记录制造业 Q-Time 报表自动化落地实践。项目基于帆软报表、MES系统与企业内部SprinBoot平台，实现了 Q-Time 比率统计报表与 Q-Time 明细报表的自动化建设。 项目初期，统计报表与明细报表耦合在同一个模板中，由于比率统计依赖大量动态 SQL 单元格计算，导致每次打开明细报表也会触发复杂聚合查询，整体性能极差。后续通过拆分报表、建立部门—站点—工序关系模型、引入内部系统平台">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于帆软报表 + MES + SpringBoot 的 Q-Time 自动化报表实战">
+<meta property="og:url" content="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/%E5%9F%BA%E4%BA%8E%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%20+%20MES%20+%20SpringBoot%E5%BA%94%E7%94%A8%E7%B3%BB%E7%BB%9F%20%E7%9A%84%20Q-Time%20%E8%87%AA%E5%8A%A8%E5%8C%96%E6%8A%A5%E8%A1%A8%E5%AE%9E%E6%88%98/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="记录制造业 Q-Time 报表自动化落地实践。项目基于帆软报表、MES系统与企业内部SprinBoot平台，实现了 Q-Time 比率统计报表与 Q-Time 明细报表的自动化建设。 项目初期，统计报表与明细报表耦合在同一个模板中，由于比率统计依赖大量动态 SQL 单元格计算，导致每次打开明细报表也会触发复杂聚合查询，整体性能极差。后续通过拆分报表、建立部门—站点—工序关系模型、引入内部系统平台">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.githubusercontent.com/mrkoLeo/ImgRepo/dev/blog/img/20260522103243845.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/mrkoLeo/ImgRepo/dev/blog/img/20260522103603228.png">
+<meta property="og:image" content="https://raw.githubusercontent.com/mrkoLeo/ImgRepo/dev/blog/img/20260522103745010.png">
+<meta property="article:published_time" content="2026-04-15T08:00:00.000Z">
+<meta property="article:modified_time" content="2026-05-25T03:39:59.539Z">
+<meta property="article:author" content="mrko">
+<meta property="article:tag" content="MES">
+<meta property="article:tag" content="SpringBoot">
+<meta property="article:tag" content="FR">
+<meta property="article:tag" content="帆软报表">
+<meta property="article:tag" content="FineReport">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/mrkoLeo/ImgRepo/dev/blog/img/20260522103243845.png">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/%E5%9F%BA%E4%BA%8E%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%20+%20MES%20+%20SpringBoot%E5%BA%94%E7%94%A8%E7%B3%BB%E7%BB%9F%20%E7%9A%84%20Q-Time%20%E8%87%AA%E5%8A%A8%E5%8C%96%E6%8A%A5%E8%A1%A8%E5%AE%9E%E6%88%98/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/%E5%9F%BA%E4%BA%8E%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%20+%20MES%20+%20SpringBoot%E5%BA%94%E7%94%A8%E7%B3%BB%E7%BB%9F%20%E7%9A%84%20Q-Time%20%E8%87%AA%E5%8A%A8%E5%8C%96%E6%8A%A5%E8%A1%A8%E5%AE%9E%E6%88%98/","path":"02-项目/06-FR/基于帆软报表 + MES + SpringBoot应用系统 的 Q-Time 自动化报表实战/","title":"基于帆软报表 + MES + SpringBoot 的 Q-Time 自动化报表实战"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>基于帆软报表 + MES + SpringBoot 的 Q-Time 自动化报表实战 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B9%E7%9B%AE%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">项目背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">遇到的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%A5%E8%A1%A8%E6%80%A7%E8%83%BD%E6%9E%81%E5%B7%AE"><span class="nav-number">2.1.</span> <span class="nav-text">报表性能极差</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MES-%E7%B3%BB%E7%BB%9F%E4%B8%8D%E7%BB%B4%E6%8A%A4%E9%83%A8%E9%97%A8%E5%85%B3%E7%B3%BB"><span class="nav-number">2.2.</span> <span class="nav-text">MES 系统不维护部门关系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%8D%E7%BB%9F%E4%B8%80"><span class="nav-number">2.3.</span> <span class="nav-text">数据库不统一</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%A8%E6%9C%9F%E7%BB%9F%E8%AE%A1%E5%A4%8D%E6%9D%82"><span class="nav-number">2.4.</span> <span class="nav-text">周期统计复杂</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">问题分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BB%9F%E8%AE%A1%E6%8A%A5%E8%A1%A8%E4%B8%8D%E5%BA%94%E8%AF%A5%E4%B8%8E%E6%98%8E%E7%BB%86%E6%8A%A5%E8%A1%A8%E8%80%A6%E5%90%88"><span class="nav-number">3.1.</span> <span class="nav-text">统计报表不应该与明细报表耦合</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E9%97%A8%E4%B8%8E%E5%B7%A5%E5%BA%8F%E4%B8%8D%E5%BA%94%E7%9B%B4%E6%8E%A5%E7%BB%91%E5%AE%9A"><span class="nav-number">3.2.</span> <span class="nav-text">部门与工序不应直接绑定</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B8%86%E8%BD%AF%E5%8A%A8%E6%80%81-SQL-%E4%BC%9A%E5%AF%BC%E8%87%B4%E6%80%A7%E8%83%BD%E9%97%AE%E9%A2%98"><span class="nav-number">3.3.</span> <span class="nav-text">帆软动态 SQL 会导致性能问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E9%83%A8%E7%B3%BB%E7%BB%9F-%E5%B9%B3%E5%8F%B0%E8%AE%BE%E8%AE%A1"><span class="nav-number">5.</span> <span class="nav-text">内部系统 平台设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B0%E5%A2%9E-Q-Time-%E7%AE%A1%E7%90%86%E6%A8%A1%E5%9D%97"><span class="nav-number">5.1.</span> <span class="nav-text">新增 Q-Time 管理模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%91%A8%E6%9C%9F%E7%9B%AE%E6%A0%87%E7%AE%A1%E7%90%86"><span class="nav-number">5.2.</span> <span class="nav-text">周期目标管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AB%99%E7%82%B9%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86"><span class="nav-number">5.3.</span> <span class="nav-text">站点配置管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E5%BA%8F%E6%9F%A5%E8%AF%A2%E9%A1%B5%E9%9D%A2"><span class="nav-number">5.4.</span> <span class="nav-text">工序查询页面</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E5%BC%80%E5%8F%91"><span class="nav-number">6.</span> <span class="nav-text">帆软报表开发</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BB%BA%E7%AB%8B%E8%81%9A%E5%90%88%E6%8A%A5%E8%A1%A8"><span class="nav-number">6.1.</span> <span class="nav-text">建立聚合报表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%95%B0%E6%8D%AE%E6%BA%90"><span class="nav-number">6.2.</span> <span class="nav-text">配置数据源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E9%9B%86%E8%AE%BE%E8%AE%A1"><span class="nav-number">6.3.</span> <span class="nav-text">数据集设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E6%9D%BF%E5%8F%82%E6%95%B0%E8%AE%BE%E8%AE%A1"><span class="nav-number">6.4.</span> <span class="nav-text">模板参数设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%A4%E5%8F%89%E8%A1%A8%E8%AE%BE%E8%AE%A1"><span class="nav-number">6.5.</span> <span class="nav-text">交叉表设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E6%8A%98%E7%BA%BF%E5%9B%BE"><span class="nav-number">6.6.</span> <span class="nav-text">动态折线图</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E4%B8%9A%E5%8A%A1%E9%80%BB%E8%BE%91"><span class="nav-number">7.</span> <span class="nav-text">核心业务逻辑</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Q-Time-%E6%AF%94%E7%8E%87%E8%AE%A1%E7%AE%97"><span class="nav-number">7.1.</span> <span class="nav-text">Q-Time 比率计算</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E9%97%A8%E8%B4%A3%E4%BB%BB%E5%BD%92%E5%B1%9E"><span class="nav-number">7.2.</span> <span class="nav-text">部门责任归属</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%9A%E5%91%A8%E6%9C%9F%E7%BB%9F%E8%AE%A1"><span class="nav-number">7.3.</span> <span class="nav-text">多周期统计</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B"><span class="nav-number">8.</span> <span class="nav-text">详细教程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8"><span class="nav-number">8.1.</span> <span class="nav-text">创建帆软报表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%95%B0%E6%8D%AE%E9%9B%86"><span class="nav-number">8.2.</span> <span class="nav-text">配置数据集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%A8%A1%E6%9D%BF%E5%8F%82%E6%95%B0"><span class="nav-number">8.3.</span> <span class="nav-text">配置模板参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%BA%A4%E5%8F%89%E8%A1%A8"><span class="nav-number">8.4.</span> <span class="nav-text">配置交叉表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E6%8A%98%E7%BA%BF%E5%9B%BE"><span class="nav-number">8.5.</span> <span class="nav-text">配置折线图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%90%E8%97%8F%E4%B8%AD%E9%97%B4%E8%AE%A1%E7%AE%97%E5%8D%95%E5%85%83%E6%A0%BC"><span class="nav-number">8.6.</span> <span class="nav-text">隐藏中间计算单元格</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%96%BD%E6%88%90%E6%9E%9C%E4%B8%8E%E6%94%B6%E7%9B%8A"><span class="nav-number">9.</span> <span class="nav-text">实施成果与收益</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%A5%E8%A1%A8%E6%80%A7%E8%83%BD%E6%8F%90%E5%8D%87"><span class="nav-number">9.1.</span> <span class="nav-text">报表性能提升</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%8C%96%E7%BB%9F%E8%AE%A1"><span class="nav-number">9.2.</span> <span class="nav-text">实现自动化统计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%90%E9%AB%98%E6%95%B0%E6%8D%AE%E5%87%86%E7%A1%AE%E7%8E%87"><span class="nav-number">9.3.</span> <span class="nav-text">提高数据准确率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%AF%E6%8C%81%E5%8A%A8%E6%80%81%E6%89%A9%E5%B1%95"><span class="nav-number">9.4.</span> <span class="nav-text">支持动态扩展</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BB%BA%E7%AB%8B%E7%BB%9F%E4%B8%80-Q-Time-%E5%88%86%E6%9E%90%E5%B9%B3%E5%8F%B0"><span class="nav-number">9.5.</span> <span class="nav-text">建立统一 Q-Time 分析平台</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%88%E6%9E%9C%E5%9B%BE"><span class="nav-number">9.6.</span> <span class="nav-text">效果图</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93"><span class="nav-number">10.</span> <span class="nav-text">项目总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/%E5%9F%BA%E4%BA%8E%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%20+%20MES%20+%20SpringBoot%E5%BA%94%E7%94%A8%E7%B3%BB%E7%BB%9F%20%E7%9A%84%20Q-Time%20%E8%87%AA%E5%8A%A8%E5%8C%96%E6%8A%A5%E8%A1%A8%E5%AE%9E%E6%88%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="基于帆软报表 + MES + SpringBoot 的 Q-Time 自动化报表实战 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          基于帆软报表 + MES + SpringBoot 的 Q-Time 自动化报表实战
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-04-15 16:00:00" itemprop="dateCreated datePublished" datetime="2026-04-15T16:00:00+08:00">2026-04-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index"><span itemprop="name">02-项目</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/06-FR/" itemprop="url" rel="index"><span itemprop="name">06-FR</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>8 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>记录制造业 Q-Time 报表自动化落地实践。项目基于帆软报表、MES系统与企业内部SprinBoot平台，实现了 Q-Time 比率统计报表与 Q-Time 明细报表的自动化建设。</p>
+<p>项目初期，统计报表与明细报表耦合在同一个模板中，由于比率统计依赖大量动态 SQL 单元格计算，导致每次打开明细报表也会触发复杂聚合查询，整体性能极差。后续通过拆分报表、建立部门—站点—工序关系模型、引入内部系统平台动态维护周期目标与责任归属，实现了报表性能优化与业务解耦。</p>
+<p>项目难点主要包括：</p>
+<ul>
+<li>MES Oracle 与内部系统 MySQL 双数据库联合查询</li>
+<li>工序与部门关系不在 MES 中维护</li>
+<li>Q-Time 责任归属动态计算</li>
+<li>周&#x2F;月&#x2F;年&#x2F;日多周期统计</li>
+<li>动态折线图与交叉表生成</li>
+<li>帆软动态 SQL 性能优化</li>
+</ul>
+<p>最终实现：</p>
+<ul>
+<li>Q-Time 比率统计报表</li>
+<li>Q-Time 明细追踪报表</li>
+<li>内部系统 后台目标配置系统</li>
+<li>工站与部门动态维护平台</li>
+<li>多周期自动化趋势分析</li>
+</ul>
+<p>有效减少了质量部门人工统计时间，提高了报表查询效率与数据准确性。</p>
+</blockquote>
+<span id="more"></span>
+
+
+
+<h2 id="项目背景"><a href="#项目背景" class="headerlink" title="项目背景"></a>项目背景</h2><p>制造工厂质量部门长期依赖人工统计 Q-Time 超时数据。</p>
+<p>原有方式存在几个明显问题：</p>
+<ul>
+<li>每天&#x2F;周人工导出 MES 数据</li>
+<li>Excel 手工透视统计</li>
+<li>各部门责任归属不明确</li>
+<li>无法实时查看趋势</li>
+<li>周&#x2F;月&#x2F;年目标无法动态维护</li>
+</ul>
+<p>因此提出：<br>构建一套基于：</p>
+<ul>
+<li>帆软报表</li>
+<li>MES 系统</li>
+<li>内部系统 企业内部平台</li>
+</ul>
+<p>的 Q-Time 自动化分析系统。</p>
+<p>实现：</p>
+<ul>
+<li>自动统计</li>
+<li>自动分析</li>
+<li>自动展示</li>
+<li>自动追踪</li>
+</ul>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><h3 id="报表性能极差"><a href="#报表性能极差" class="headerlink" title="报表性能极差"></a>报表性能极差</h3><p>最开始：</p>
+<ul>
+<li>Q-Time 比率统计报表</li>
+<li>Q-Time 明细报表</li>
+</ul>
+<p>被设计在同一个模板中。</p>
+<p>而比率统计报表：</p>
+<ul>
+<li>使用交叉表</li>
+<li>每个单元格都是动态 SQL</li>
+<li>每个部门 × 每个周期 都会触发一次 SQL 查询</li>
+</ul>
+<p>导致：</p>
+<ul>
+<li>打开一次报表执行上百条 SQL</li>
+<li>明细报表每次查询都会触发统计报表</li>
+<li>页面加载极慢</li>
+<li>数据库压力巨大</li>
+</ul>
+<h3 id="MES-系统不维护部门关系"><a href="#MES-系统不维护部门关系" class="headerlink" title="MES 系统不维护部门关系"></a>MES 系统不维护部门关系</h3><p>MES 系统中：</p>
+<p>只有：</p>
+<ul>
+<li>工序</li>
+<li>站点</li>
+<li>Lot</li>
+<li>Q-Time 数据</li>
+</ul>
+<p>但：</p>
+<p>没有：</p>
+<ul>
+<li>部门</li>
+<li>部门与工序关系</li>
+</ul>
+<p>质量部门希望：</p>
+<p>按照部门统计责任归属。</p>
+<p>因此必须额外建立：</p>
+<ul>
+<li>部门</li>
+<li>站点</li>
+<li>工序</li>
+</ul>
+<p>之间的映射关系。</p>
+<h3 id="数据库不统一"><a href="#数据库不统一" class="headerlink" title="数据库不统一"></a>数据库不统一</h3><p>系统涉及三个平台：</p>
+<table>
+<thead>
+<tr>
+<th>系统</th>
+<th>数据库</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MES</td>
+<td>Oracle</td>
+</tr>
+<tr>
+<td>内部系统平台</td>
+<td>MySQL</td>
+</tr>
+<tr>
+<td>帆软报表</td>
+<td>多数据源</td>
+</tr>
+</tbody></table>
+<p>导致：</p>
+<ul>
+<li>目标值在 MySQL</li>
+<li>Q-Time 数据在 Oracle</li>
+<li>部门关系在 MySQL</li>
+<li>工序关系来自 MES</li>
+</ul>
+<p>需要跨数据库组合查询。</p>
+<h3 id="周期统计复杂"><a href="#周期统计复杂" class="headerlink" title="周期统计复杂"></a>周期统计复杂</h3><p>需求要求支持：</p>
+<ul>
+<li>近2年</li>
+<li>近3个月</li>
+<li>近5周</li>
+<li>近7天</li>
+</ul>
+<p>并动态生成：</p>
+<ul>
+<li>百分比统计</li>
+<li>趋势折线图</li>
+<li>部门对比</li>
+</ul>
+<p>属于典型动态列报表。</p>
+<h2 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h2><h3 id="统计报表不应该与明细报表耦合"><a href="#统计报表不应该与明细报表耦合" class="headerlink" title="统计报表不应该与明细报表耦合"></a>统计报表不应该与明细报表耦合</h3><p>统计报表特点：</p>
+<ul>
+<li>SQL 非常复杂</li>
+<li>聚合计算多</li>
+<li>查询耗时长</li>
+</ul>
+<p>明细报表特点：</p>
+<ul>
+<li>查询频率高</li>
+<li>用户使用频繁</li>
+<li>需要快速响应</li>
+</ul>
+<p>因此：</p>
+<p>必须拆分。</p>
+<p>最终：</p>
+<ul>
+<li>比率统计报表独立</li>
+<li>明细报表独立</li>
+</ul>
+<p>避免互相影响。</p>
+<h3 id="部门与工序不应直接绑定"><a href="#部门与工序不应直接绑定" class="headerlink" title="部门与工序不应直接绑定"></a>部门与工序不应直接绑定</h3><p>如果：</p>
+<p>部门直接绑定工序。</p>
+<p>后续：</p>
+<ul>
+<li>MES 工序变化</li>
+<li>新增工序</li>
+<li>工艺调整</li>
+</ul>
+<p>都会导致维护困难。</p>
+<p>因此设计：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">部门 -&gt; 站点 -&gt; 工序</span><br></pre></td></tr></table></figure>
+
+<p>由：</p>
+<ul>
+<li>内部系统 维护部门与站点</li>
+<li>MES 维护站点与工序</li>
+</ul>
+<p>实现业务解耦。</p>
+<h3 id="帆软动态-SQL-会导致性能问题"><a href="#帆软动态-SQL-会导致性能问题" class="headerlink" title="帆软动态 SQL 会导致性能问题"></a>帆软动态 SQL 会导致性能问题</h3><p>最初方案：</p>
+<p>每个单元格执行一次 SQL：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sql(&quot;MESDB&quot;, &quot;SELECT ...&quot;)</span><br></pre></td></tr></table></figure>
+
+<p>会造成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">部门数量 × 周期数量 × 查询次数</span><br></pre></td></tr></table></figure>
+
+<p>性能急剧下降。</p>
+<p>因此后续：</p>
+<ul>
+<li>优先使用数据集</li>
+<li>尽量一次查询所有数据</li>
+<li>模板层做过滤</li>
+<li>减少动态 SQL</li>
+</ul>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>整体架构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">内部系统平台</span><br><span class="line">    ↓</span><br><span class="line">维护目标/部门关系</span><br><span class="line"></span><br><span class="line">MES系统</span><br><span class="line">    ↓</span><br><span class="line">提供Q-Time与Lot数据</span><br><span class="line"></span><br><span class="line">帆软报表</span><br><span class="line">    ↓</span><br><span class="line">聚合统计 + 趋势图 + 明细分析</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="内部系统-平台设计"><a href="#内部系统-平台设计" class="headerlink" title="内部系统 平台设计"></a>内部系统 平台设计</h2><h3 id="新增-Q-Time-管理模块"><a href="#新增-Q-Time-管理模块" class="headerlink" title="新增 Q-Time 管理模块"></a>新增 Q-Time 管理模块</h3><p>内部系统 新增：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Q-Time管理</span><br><span class="line">    ├── Q-Time目标管理</span><br><span class="line">    ├── Q-Time站点配置</span><br><span class="line">    └── Q-Time工序查询</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="周期目标管理"><a href="#周期目标管理" class="headerlink" title="周期目标管理"></a>周期目标管理</h3><p>用于维护：</p>
+<ul>
+<li>年目标</li>
+<li>月目标</li>
+<li>周目标</li>
+<li>日目标</li>
+</ul>
+<p>数据库：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE qtime_target (</span><br><span class="line">    id BIGINT PRIMARY KEY AUTO_INCREMENT,</span><br><span class="line">    qtime_code VARCHAR(64),</span><br><span class="line">    period_type VARCHAR(16),</span><br><span class="line">    period_offset INT,</span><br><span class="line">    target_value DECIMAL(5,2)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="站点配置管理"><a href="#站点配置管理" class="headerlink" title="站点配置管理"></a>站点配置管理</h3><p>用于维护：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">部门 -&gt; 站点</span><br></pre></td></tr></table></figure>
+
+<p>关系。</p>
+<p>数据库：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE qtime_station (</span><br><span class="line">    station_id BIGINT PRIMARY KEY AUTO_INCREMENT,</span><br><span class="line">    station_code VARCHAR(10),</span><br><span class="line">    dept_id BIGINT,</span><br><span class="line">    dept_name VARCHAR(100)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="工序查询页面"><a href="#工序查询页面" class="headerlink" title="工序查询页面"></a>工序查询页面</h3><p>MES 中：</p>
+<p>工序数量很多。</p>
+<p>因此：</p>
+<p>开发独立页面：</p>
+<ul>
+<li>查询工序</li>
+<li>导出工序</li>
+<li>查看站点归属</li>
+</ul>
+<p>方便质量人员维护。</p>
+<h2 id="帆软报表开发"><a href="#帆软报表开发" class="headerlink" title="帆软报表开发"></a>帆软报表开发</h2><h3 id="建立聚合报表"><a href="#建立聚合报表" class="headerlink" title="建立聚合报表"></a>建立聚合报表</h3><p>在：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">帆软报表/itDemo</span><br></pre></td></tr></table></figure>
+
+<p>目录中新建：</p>
+<ul>
+<li>聚合报表</li>
+<li>明细报表</li>
+</ul>
+<h3 id="配置数据源"><a href="#配置数据源" class="headerlink" title="配置数据源"></a>配置数据源</h3><p>帆软配置：</p>
+<ul>
+<li>Oracle 数据源</li>
+<li>MySQL 数据源</li>
+</ul>
+<p>分别对应：</p>
+<ul>
+<li>MES</li>
+<li>内部系统</li>
+</ul>
+<h3 id="数据集设计"><a href="#数据集设计" class="headerlink" title="数据集设计"></a>数据集设计</h3><p>优先：</p>
+<p>一次查询全部数据。</p>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">SELECT</span><br><span class="line">    qs.dept_name,</span><br><span class="line">    qt.period_type,</span><br><span class="line">    qt.target_value</span><br><span class="line">FROM qtime_station qs</span><br><span class="line">LEFT JOIN qtime_target qt</span><br></pre></td></tr></table></figure>
+
+<p>避免：</p>
+<p>单元格 SQL。</p>
+<h3 id="模板参数设计"><a href="#模板参数设计" class="headerlink" title="模板参数设计"></a>模板参数设计</h3><p>使用：</p>
+<ul>
+<li>模板参数</li>
+<li>数据集参数</li>
+</ul>
+<p>实现动态筛选。</p>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$&#123;if(len(eStepCode)&gt;0,</span><br><span class="line">&quot; AND se.STEP_CODE IN (...) &quot;,</span><br><span class="line">&quot;&quot;)&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="交叉表设计"><a href="#交叉表设计" class="headerlink" title="交叉表设计"></a>交叉表设计</h3><p>实现：</p>
+<p>动态：</p>
+<ul>
+<li>部门</li>
+<li>周期</li>
+<li>百分比</li>
+</ul>
+<p>展示。</p>
+<p>最终生成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">部门 × 周期</span><br></pre></td></tr></table></figure>
+
+<p>二维统计表。</p>
+<h3 id="动态折线图"><a href="#动态折线图" class="headerlink" title="动态折线图"></a>动态折线图</h3><p>折线图：</p>
+<ul>
+<li>横坐标：周期</li>
+<li>纵坐标：Q-Time 比率</li>
+</ul>
+<p>数据来源：</p>
+<ul>
+<li>厂合计</li>
+<li>目标值</li>
+</ul>
+<p>实现：</p>
+<p>趋势分析。</p>
+<h2 id="核心业务逻辑"><a href="#核心业务逻辑" class="headerlink" title="核心业务逻辑"></a>核心业务逻辑</h2><h3 id="Q-Time-比率计算"><a href="#Q-Time-比率计算" class="headerlink" title="Q-Time 比率计算"></a>Q-Time 比率计算</h3><p>核心逻辑：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Q-Time触发批次 / 总过站批次</span><br></pre></td></tr></table></figure>
+
+<p>SQL 核心：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">COUNT(DISTINCT STEP_ID || &#x27;_&#x27; || LOT_ID)</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="部门责任归属"><a href="#部门责任归属" class="headerlink" title="部门责任归属"></a>部门责任归属</h3><p>规则：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">A-B-B</span><br></pre></td></tr></table></figure>
+
+<p>如果：</p>
+<p>A 工序耗时更多。</p>
+<p>则：</p>
+<p>责任归属 A 部门。</p>
+<p>否则：</p>
+<p>归属 B 部门。</p>
+<p>属于业务规则动态计算。</p>
+<h3 id="多周期统计"><a href="#多周期统计" class="headerlink" title="多周期统计"></a>多周期统计</h3><p>支持：</p>
+<table>
+<thead>
+<tr>
+<th>周期</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>YEAR</td>
+<td>近2年</td>
+</tr>
+<tr>
+<td>MONTH</td>
+<td>近3个月</td>
+</tr>
+<tr>
+<td>WEEK</td>
+<td>近5周</td>
+</tr>
+<tr>
+<td>DAY</td>
+<td>近7天</td>
+</tr>
+</tbody></table>
+<p>动态生成列。</p>
+<h2 id="详细教程"><a href="#详细教程" class="headerlink" title="详细教程"></a>详细教程</h2><h3 id="创建帆软报表"><a href="#创建帆软报表" class="headerlink" title="创建帆软报表"></a>创建帆软报表</h3><p>步骤：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">模板设计器</span><br><span class="line">    ↓</span><br><span class="line">新建聚合报表</span><br><span class="line">    ↓</span><br><span class="line">拖入表格</span><br><span class="line">    ↓</span><br><span class="line">配置数据集</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="配置数据集"><a href="#配置数据集" class="headerlink" title="配置数据集"></a>配置数据集</h3><p>选择：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">数据库查询</span><br></pre></td></tr></table></figure>
+
+<p>填写 SQL。</p>
+<p>建议：</p>
+<p>一次查询全部数据。</p>
+<p>避免动态 SQL。</p>
+<h3 id="配置模板参数"><a href="#配置模板参数" class="headerlink" title="配置模板参数"></a>配置模板参数</h3><p>注意：</p>
+<p>模板参数不要引用自身数据集。</p>
+<p>否则：</p>
+<p>会循环调用。</p>
+<h3 id="配置交叉表"><a href="#配置交叉表" class="headerlink" title="配置交叉表"></a>配置交叉表</h3><p>配置：</p>
+<ul>
+<li>数据列</li>
+<li>动态行</li>
+<li>动态列</li>
+</ul>
+<p>实现：</p>
+<p>部门维度统计。</p>
+<h3 id="配置折线图"><a href="#配置折线图" class="headerlink" title="配置折线图"></a>配置折线图</h3><p>步骤：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">插入图表</span><br><span class="line">    ↓</span><br><span class="line">选择折线图</span><br><span class="line">    ↓</span><br><span class="line">绑定数据集</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="隐藏中间计算单元格"><a href="#隐藏中间计算单元格" class="headerlink" title="隐藏中间计算单元格"></a>隐藏中间计算单元格</h3><p>帆软技巧：</p>
+<p>很多中间数据：</p>
+<p>可以放到隐藏单元格。</p>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">A4</span><br><span class="line">C1</span><br><span class="line">C2</span><br></pre></td></tr></table></figure>
+
+<p>供公式读取。</p>
+<h2 id="实施成果与收益"><a href="#实施成果与收益" class="headerlink" title="实施成果与收益"></a>实施成果与收益</h2><h3 id="报表性能提升"><a href="#报表性能提升" class="headerlink" title="报表性能提升"></a>报表性能提升</h3><p>优化前：</p>
+<ul>
+<li>打开报表几十秒</li>
+<li>数据库压力巨大</li>
+</ul>
+<p>优化后：</p>
+<ul>
+<li>明细与统计拆分</li>
+<li>查询速度明显提升</li>
+</ul>
+<h3 id="实现自动化统计"><a href="#实现自动化统计" class="headerlink" title="实现自动化统计"></a>实现自动化统计</h3><p>原先：</p>
+<p>质量部门：</p>
+<ul>
+<li>手工导 Excel</li>
+<li>手工透视</li>
+<li>手工计算</li>
+</ul>
+<p>现在：</p>
+<p>全部自动生成。</p>
+<h3 id="提高数据准确率"><a href="#提高数据准确率" class="headerlink" title="提高数据准确率"></a>提高数据准确率</h3><p>通过：</p>
+<p>统一：</p>
+<ul>
+<li>周期</li>
+<li>部门</li>
+<li>工序</li>
+</ul>
+<p>关系。</p>
+<p>避免人工统计错误。</p>
+<h3 id="支持动态扩展"><a href="#支持动态扩展" class="headerlink" title="支持动态扩展"></a>支持动态扩展</h3><p>后续：</p>
+<p>新增：</p>
+<ul>
+<li>部门</li>
+<li>工序</li>
+<li>周期</li>
+</ul>
+<p>无需修改报表逻辑。</p>
+<p>只需维护配置。</p>
+<h3 id="建立统一-Q-Time-分析平台"><a href="#建立统一-Q-Time-分析平台" class="headerlink" title="建立统一 Q-Time 分析平台"></a>建立统一 Q-Time 分析平台</h3><p>最终实现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">内部系统配置</span><br><span class="line">    ↓</span><br><span class="line">MES数据</span><br><span class="line">    ↓</span><br><span class="line">帆软展示</span><br></pre></td></tr></table></figure>
+
+<p>完整闭环。</p>
+<h3 id="效果图"><a href="#效果图" class="headerlink" title="效果图"></a>效果图</h3><p><img data-src="https://raw.githubusercontent.com/mrkoLeo/ImgRepo/dev/blog/img/20260522103243845.png" alt="image-20260522103243588"></p>
+<p><img data-src="https://raw.githubusercontent.com/mrkoLeo/ImgRepo/dev/blog/img/20260522103603228.png" alt="image-20260522103603099"></p>
+<p><img data-src="https://raw.githubusercontent.com/mrkoLeo/ImgRepo/dev/blog/img/20260522103745010.png" alt="image-20260522103744878"> </p>
+<h2 id="项目总结"><a href="#项目总结" class="headerlink" title="项目总结"></a>项目总结</h2><p>本次 Q-Time 自动化项目，本质上不仅仅是一个报表开发。</p>
+<p>而是：</p>
+<p>一次：</p>
+<ul>
+<li>MES 数据治理</li>
+<li>制造业务建模</li>
+<li>报表性能优化</li>
+<li>企业平台协同</li>
+</ul>
+<p>的综合实践。</p>
+<p>项目最大的收获：</p>
+<p>并不是完成了一张报表。</p>
+<p>而是：</p>
+<p>建立了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">部门 -&gt; 站点 -&gt; 工序</span><br></pre></td></tr></table></figure>
+
+<p>的业务模型。</p>
+<p>使：</p>
+<ul>
+<li>后续扩展</li>
+<li>责任归属</li>
+<li>动态统计</li>
+</ul>
+<p>都有了统一基础。</p>
+<p>同时也验证了：</p>
+<p>在帆软开发中：</p>
+<ul>
+<li>数据集优先</li>
+<li>动态 SQL 谨慎使用</li>
+<li>统计与明细解耦</li>
+</ul>
+<p>是非常重要的实践经验。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/MES/" rel="tag"># MES</a>
+              <a href="/tags/SpringBoot/" rel="tag"># SpringBoot</a>
+              <a href="/tags/FR/" rel="tag"># FR</a>
+              <a href="/tags/%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8/" rel="tag"># 帆软报表</a>
+              <a href="/tags/FineReport/" rel="tag"># FineReport</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/04-IP/%E5%9F%BA%E4%BA%8EMES%E7%9A%84%E9%87%8F%E6%B5%8B%E6%95%B0%E6%8D%AE%E8%87%AA%E5%8A%A8%E5%8C%96%E4%B8%8A%E4%BC%A0%E5%B9%B3%E5%8F%B0%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%BB%8E%E4%BA%BA%E5%B7%A5%E5%BD%95%E5%85%A5%E5%88%B0%E8%AE%BE%E5%A4%87%E6%95%B0%E6%8D%AE%E8%87%AA%E5%8A%A8%E5%85%A5%E7%AB%99/" rel="prev" title="基于MES的量测数据自动化上传平台实践：从人工录入到设备数据自动入站">
+                  <i class="fa fa-angle-left"></i> 基于MES的量测数据自动化上传平台实践：从人工录入到设备数据自动入站
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">27k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:38</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

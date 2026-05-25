@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="记录了企业内部代码管理平台从 SVN 向 Git 化演进的实践过程。由于公司内部长期使用 SVN 进行代码管理，在多人协作、权限管理、分支开发及代码追溯等方面逐渐暴露出问题。结合团队规模较小、运维资源有限等实际情况，最终选型轻量级 Git 服务平台 Gitea，并基于 Linux RHEL8 虚拟机完成内部 Git 服务部署。 文章详细介绍了虚拟机申请、Gitea 安装、MariaDB 配置、S">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从 SVN 到 Gitea：制造业内部 Git 服务搭建与规范化落地实践">
+<meta property="og:url" content="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/01-Git/%E4%BB%8E%20SVN%20%E5%88%B0%20Gitea%EF%BC%9A%E5%88%B6%E9%80%A0%E4%B8%9A%E5%86%85%E9%83%A8%20Git%20%E6%9C%8D%E5%8A%A1%E6%90%AD%E5%BB%BA%E4%B8%8E%E8%A7%84%E8%8C%83%E5%8C%96%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="记录了企业内部代码管理平台从 SVN 向 Git 化演进的实践过程。由于公司内部长期使用 SVN 进行代码管理，在多人协作、权限管理、分支开发及代码追溯等方面逐渐暴露出问题。结合团队规模较小、运维资源有限等实际情况，最终选型轻量级 Git 服务平台 Gitea，并基于 Linux RHEL8 虚拟机完成内部 Git 服务部署。 文章详细介绍了虚拟机申请、Gitea 安装、MariaDB 配置、S">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-11-21T00:53:27.000Z">
+<meta property="article:modified_time" content="2026-05-25T03:39:59.539Z">
+<meta property="article:author" content="mrko">
+<meta property="article:tag" content="Git">
+<meta property="article:tag" content="Gitea">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/01-Git/%E4%BB%8E%20SVN%20%E5%88%B0%20Gitea%EF%BC%9A%E5%88%B6%E9%80%A0%E4%B8%9A%E5%86%85%E9%83%A8%20Git%20%E6%9C%8D%E5%8A%A1%E6%90%AD%E5%BB%BA%E4%B8%8E%E8%A7%84%E8%8C%83%E5%8C%96%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/01-Git/%E4%BB%8E%20SVN%20%E5%88%B0%20Gitea%EF%BC%9A%E5%88%B6%E9%80%A0%E4%B8%9A%E5%86%85%E9%83%A8%20Git%20%E6%9C%8D%E5%8A%A1%E6%90%AD%E5%BB%BA%E4%B8%8E%E8%A7%84%E8%8C%83%E5%8C%96%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5/","path":"03-工具/01-Git/从 SVN 到 Gitea：制造业内部 Git 服务搭建与规范化落地实践/","title":"从 SVN 到 Gitea：制造业内部 Git 服务搭建与规范化落地实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>从 SVN 到 Gitea：制造业内部 Git 服务搭建与规范化落地实践 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">遇到问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SVN-%E5%B7%B2%E6%97%A0%E6%B3%95%E6%BB%A1%E8%B6%B3%E5%BD%93%E5%89%8D%E5%BC%80%E5%8F%91%E6%A8%A1%E5%BC%8F"><span class="nav-number">2.1.</span> <span class="nav-text">SVN 已无法满足当前开发模式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%97%9B%E7%82%B9"><span class="nav-number">3.</span> <span class="nav-text">痛点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-SVN-%E4%B8%8D%E9%80%82%E5%90%88%E5%A4%9A%E4%BA%BA%E5%8D%8F%E4%BD%9C%E5%BC%80%E5%8F%91"><span class="nav-number">3.1.</span> <span class="nav-text">1. SVN 不适合多人协作开发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E7%BC%BA%E5%B0%91%E8%A7%84%E8%8C%83%E5%8C%96%E7%BB%84%E7%BB%87%E7%AE%A1%E7%90%86"><span class="nav-number">3.2.</span> <span class="nav-text">2. 缺少规范化组织管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%97%A0%E6%B3%95%E6%94%AF%E6%8C%81%E7%8E%B0%E4%BB%A3-DevOps-%E6%B5%81%E7%A8%8B"><span class="nav-number">3.3.</span> <span class="nav-text">3. 无法支持现代 DevOps 流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E8%BF%90%E7%BB%B4%E6%88%90%E6%9C%AC%E5%A2%9E%E5%8A%A0"><span class="nav-number">3.4.</span> <span class="nav-text">4. 运维成本增加</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">4.</span> <span class="nav-text">问题分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%89%E6%8B%A9-Git"><span class="nav-number">4.1.</span> <span class="nav-text">为什么选择 Git</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%89%E6%8B%A9-Gitea"><span class="nav-number">4.2.</span> <span class="nav-text">为什么选择 Gitea</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">5.</span> <span class="nav-text">解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B"><span class="nav-number">6.</span> <span class="nav-text">详细教程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%94%B3%E8%AF%B7-Linux-%E8%99%9A%E6%8B%9F%E6%9C%BA"><span class="nav-number">7.</span> <span class="nav-text">申请 Linux 虚拟机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-number">8.</span> <span class="nav-text">连接服务器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2-Gitea-%E6%9C%8D%E5%8A%A1"><span class="nav-number">9.</span> <span class="nav-text">部署 Gitea 服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Gitea-%E5%AE%89%E8%A3%85%E8%84%9A%E6%9C%AC%E8%AE%BE%E8%AE%A1%E4%BA%AE%E7%82%B9"><span class="nav-number">10.</span> <span class="nav-text">Gitea 安装脚本设计亮点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E6%A3%80%E6%B5%8B%E6%95%B0%E6%8D%AE%E7%9B%98%E6%8C%82%E8%BD%BD"><span class="nav-number">10.1.</span> <span class="nav-text">自动检测数据盘挂载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#systemd-%E6%9C%8D%E5%8A%A1%E5%8C%96%E7%AE%A1%E7%90%86"><span class="nav-number">10.2.</span> <span class="nav-text">systemd 服务化管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8B%AC%E7%AB%8B-git-%E7%94%A8%E6%88%B7"><span class="nav-number">10.3.</span> <span class="nav-text">独立 git 用户</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85-MariaDB"><span class="nav-number">11.</span> <span class="nav-text">安装 MariaDB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96-Gitea"><span class="nav-number">12.</span> <span class="nav-text">初始化 Gitea</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="nav-number">12.1.</span> <span class="nav-text">数据库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%A1%E7%90%86%E5%91%98%E8%B4%A6%E5%8F%B7"><span class="nav-number">12.2.</span> <span class="nav-text">管理员账号</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A6%81%E6%AD%A2%E7%94%A8%E6%88%B7%E8%87%AA%E8%A1%8C%E6%B3%A8%E5%86%8C"><span class="nav-number">13.</span> <span class="nav-text">禁止用户自行注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BB%BA%E7%AB%8B%E7%BB%84%E7%BB%87%E8%A7%84%E8%8C%83"><span class="nav-number">14.</span> <span class="nav-text">建立组织规范</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%93%E5%BA%93%E5%91%BD%E5%90%8D%E8%A7%84%E8%8C%83"><span class="nav-number">15.</span> <span class="nav-text">仓库命名规范</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSH-%E5%85%8D%E5%AF%86%E7%99%BB%E5%BD%95%E9%85%8D%E7%BD%AE"><span class="nav-number">16.</span> <span class="nav-text">SSH 免密登录配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%9A-Git-%E6%BA%90%E7%AE%A1%E7%90%86"><span class="nav-number">17.</span> <span class="nav-text">多 Git 源管理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E7%BB%B4%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4"><span class="nav-number">18.</span> <span class="nav-text">运维常用命令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E7%8A%B6%E6%80%81"><span class="nav-number">18.1.</span> <span class="nav-text">查看状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E5%90%AF%E6%9C%8D%E5%8A%A1"><span class="nav-number">18.2.</span> <span class="nav-text">重启服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E6%97%A5%E5%BF%97"><span class="nav-number">18.3.</span> <span class="nav-text">查看日志</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="nav-number">18.4.</span> <span class="nav-text">查看数据库</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%96%BD%E6%88%90%E6%9E%9C-%E6%94%B6%E7%9B%8A"><span class="nav-number">19.</span> <span class="nav-text">实施成果 &amp; 收益</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BC%80%E5%8F%91%E5%8D%8F%E4%BD%9C%E6%95%88%E7%8E%87%E6%98%8E%E6%98%BE%E6%8F%90%E5%8D%87"><span class="nav-number">19.1.</span> <span class="nav-text">开发协作效率明显提升</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86%E7%BB%9F%E4%B8%80%E5%8C%96"><span class="nav-number">19.2.</span> <span class="nav-text">权限管理统一化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%90%E7%BB%B4%E6%A0%87%E5%87%86%E5%8C%96"><span class="nav-number">19.3.</span> <span class="nav-text">运维标准化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E5%90%8E%E7%BB%AD-DevOps-%E5%81%9A%E5%87%86%E5%A4%87"><span class="nav-number">19.4.</span> <span class="nav-text">为后续 DevOps 做准备</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">20.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/01-Git/%E4%BB%8E%20SVN%20%E5%88%B0%20Gitea%EF%BC%9A%E5%88%B6%E9%80%A0%E4%B8%9A%E5%86%85%E9%83%A8%20Git%20%E6%9C%8D%E5%8A%A1%E6%90%AD%E5%BB%BA%E4%B8%8E%E8%A7%84%E8%8C%83%E5%8C%96%E8%90%BD%E5%9C%B0%E5%AE%9E%E8%B7%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="从 SVN 到 Gitea：制造业内部 Git 服务搭建与规范化落地实践 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          从 SVN 到 Gitea：制造业内部 Git 服务搭建与规范化落地实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-11-21 08:53:27" itemprop="dateCreated datePublished" datetime="2025-11-21T08:53:27+08:00">2025-11-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/" itemprop="url" rel="index"><span itemprop="name">03-工具</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/01-Git/" itemprop="url" rel="index"><span itemprop="name">01-Git</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>7 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>记录了企业内部代码管理平台从 SVN 向 Git 化演进的实践过程。由于公司内部长期使用 SVN 进行代码管理，在多人协作、权限管理、分支开发及代码追溯等方面逐渐暴露出问题。结合团队规模较小、运维资源有限等实际情况，最终选型轻量级 Git 服务平台 Gitea，并基于 Linux RHEL8 虚拟机完成内部 Git 服务部署。</p>
+<p>文章详细介绍了虚拟机申请、Gitea 安装、MariaDB 配置、SSH 免密登录、多仓库管理、组织权限规范等完整流程，同时整理了日常运维命令与常见问题排查经验，适合作为制造业中小团队内部 Git 服务落地参考方案。</p>
+</blockquote>
+<span id="more"></span>
+
+
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>随着 MES、ERP、OA、报表平台等系统逐渐增多，公司内部开发脚本、自动化工具以及业务系统代码量持续增长。</p>
+<p>当前公司仍以 SVN 作为主要代码管理工具，虽然能够满足最基础的代码存储需求，但随着开发人员增加，逐渐出现以下问题：</p>
+<ul>
+<li>多人协作效率低</li>
+<li>分支开发困难</li>
+<li>权限管理不灵活</li>
+<li>无法规范代码评审流程</li>
+<li>自动化集成能力弱</li>
+<li>新项目初始化成本高</li>
+</ul>
+<p>尤其在制造业环境中，MES、ERP、设备接口、自动化脚本等项目往往由多个开发人员共同维护，SVN 已经难以满足后续持续扩展需求。</p>
+<p>因此，决定在公司内部搭建统一 Git 服务平台。</p>
+<h2 id="遇到问题"><a href="#遇到问题" class="headerlink" title="遇到问题"></a>遇到问题</h2><h3 id="SVN-已无法满足当前开发模式"><a href="#SVN-已无法满足当前开发模式" class="headerlink" title="SVN 已无法满足当前开发模式"></a>SVN 已无法满足当前开发模式</h3><p>当前环境主要存在以下问题：</p>
+<ul>
+<li>所有项目共用 SVN 仓库</li>
+<li>权限粒度较粗</li>
+<li>无法方便进行 Feature 分支开发</li>
+<li>多人同时修改容易冲突</li>
+<li>无法规范 Commit 历史</li>
+<li>缺少组织化管理能力</li>
+<li>缺少统一代码平台</li>
+</ul>
+<p>例如：</p>
+<ul>
+<li>MES 系统项目</li>
+<li>ERP 接口项目</li>
+<li>公司内部SpringBoot系统</li>
+</ul>
+<p>均散落在不同 SVN 路径中。</p>
+<p>后期维护成本越来越高。</p>
+<h2 id="痛点"><a href="#痛点" class="headerlink" title="痛点"></a>痛点</h2><h3 id="1-SVN-不适合多人协作开发"><a href="#1-SVN-不适合多人协作开发" class="headerlink" title="1. SVN 不适合多人协作开发"></a>1. SVN 不适合多人协作开发</h3><p>SVN 更偏向集中式版本管理。</p>
+<p>开发人员修改代码前需要先更新，提交时容易发生冲突。</p>
+<p>尤其多人同时开发：</p>
+<ul>
+<li>MES接口</li>
+<li>数据同步</li>
+<li>自动化脚本</li>
+</ul>
+<p>时，经常互相覆盖代码。</p>
+<h3 id="2-缺少规范化组织管理"><a href="#2-缺少规范化组织管理" class="headerlink" title="2. 缺少规范化组织管理"></a>2. 缺少规范化组织管理</h3><p>不同系统项目：</p>
+<ul>
+<li>MES</li>
+<li>ERP</li>
+<li>OA</li>
+<li>公司内部SpringBoot系统</li>
+</ul>
+<p>均没有统一归属。</p>
+<p>导致：</p>
+<ul>
+<li>仓库命名混乱</li>
+<li>权限难管理</li>
+<li>无法快速定位项目</li>
+</ul>
+<h3 id="3-无法支持现代-DevOps-流程"><a href="#3-无法支持现代-DevOps-流程" class="headerlink" title="3. 无法支持现代 DevOps 流程"></a>3. 无法支持现代 DevOps 流程</h3><p>后期计划逐渐引入：</p>
+<ul>
+<li>自动部署</li>
+<li>CI&#x2F;CD</li>
+<li>自动化测试</li>
+<li>Git Hook</li>
+<li>Jenkins</li>
+</ul>
+<p>SVN 对这些支持较弱。</p>
+<h3 id="4-运维成本增加"><a href="#4-运维成本增加" class="headerlink" title="4. 运维成本增加"></a>4. 运维成本增加</h3><p>SVN 权限配置复杂。</p>
+<p>新增员工：</p>
+<ul>
+<li>创建账号</li>
+<li>分配目录权限</li>
+<li>调整访问策略</li>
+</ul>
+<p>均需要人工处理。</p>
+<h2 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h2><h3 id="为什么选择-Git"><a href="#为什么选择-Git" class="headerlink" title="为什么选择 Git"></a>为什么选择 Git</h3><p>Git 属于分布式版本控制。</p>
+<p>相比 SVN：</p>
+<table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>SVN</th>
+<th>Git</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>架构</td>
+<td>集中式</td>
+<td>分布式</td>
+</tr>
+<tr>
+<td>分支管理</td>
+<td>较弱</td>
+<td>非常强</td>
+</tr>
+<tr>
+<td>离线提交</td>
+<td>不支持</td>
+<td>支持</td>
+</tr>
+<tr>
+<td>协作能力</td>
+<td>一般</td>
+<td>强</td>
+</tr>
+<tr>
+<td>DevOps支持</td>
+<td>较弱</td>
+<td>强</td>
+</tr>
+<tr>
+<td>社区生态</td>
+<td>一般</td>
+<td>非常丰富</td>
+</tr>
+</tbody></table>
+<p>Git 已经成为当前主流代码管理方案。</p>
+<h3 id="为什么选择-Gitea"><a href="#为什么选择-Gitea" class="headerlink" title="为什么选择 Gitea"></a>为什么选择 Gitea</h3><p>虽然 GitLab 功能更强，但结合公司现状：</p>
+<ul>
+<li>开发人数少</li>
+<li>项目规模中等</li>
+<li>运维资源有限</li>
+</ul>
+<p>最终选择轻量级 Gitea。</p>
+<p>Gitea 具有以下优势：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Gitea</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>资源占用低</td>
+<td>√</td>
+</tr>
+<tr>
+<td>部署简单</td>
+<td>√</td>
+</tr>
+<tr>
+<td>中文友好</td>
+<td>√</td>
+</tr>
+<tr>
+<td>支持组织管理</td>
+<td>√</td>
+</tr>
+<tr>
+<td>支持SSH</td>
+<td>√</td>
+</tr>
+<tr>
+<td>支持权限控制</td>
+<td>√</td>
+</tr>
+<tr>
+<td>支持Webhook</td>
+<td>√</td>
+</tr>
+</tbody></table>
+<p>非常适合中小型制造业团队。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>整体方案如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">开发人员</span><br><span class="line">    ↓</span><br><span class="line">Gitea Git 服务</span><br><span class="line">    ↓</span><br><span class="line">Linux RHEL8 虚拟机</span><br><span class="line">    ↓</span><br><span class="line">MariaDB 数据库存储</span><br><span class="line">    ↓</span><br><span class="line">数据盘独立挂载</span><br></pre></td></tr></table></figure>
+
+<p>整体分为：</p>
+<ol>
+<li>申请虚拟机</li>
+<li>安装 Gitea</li>
+<li>安装 MariaDB</li>
+<li>配置组织权限</li>
+<li>配置 SSH</li>
+<li>建立规范化仓库结构</li>
+</ol>
+<h2 id="详细教程"><a href="#详细教程" class="headerlink" title="详细教程"></a>详细教程</h2><h2 id="申请-Linux-虚拟机"><a href="#申请-Linux-虚拟机" class="headerlink" title="申请 Linux 虚拟机"></a>申请 Linux 虚拟机</h2><p>首先需要向公司申请内部 Linux 虚拟机。</p>
+<p>推荐配置：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CPU</td>
+<td>2 Core</td>
+</tr>
+<tr>
+<td>内存</td>
+<td>4GB+</td>
+</tr>
+<tr>
+<td>存储</td>
+<td>100GB</td>
+</tr>
+<tr>
+<td>系统</td>
+<td>RHEL8</td>
+</tr>
+<tr>
+<td>网络</td>
+<td>内网访问</td>
+</tr>
+</tbody></table>
+<p>重点：</p>
+<ul>
+<li>数据盘单独挂载</li>
+<li>后期便于扩容</li>
+<li>支持备份</li>
+</ul>
+<h2 id="连接服务器"><a href="#连接服务器" class="headerlink" title="连接服务器"></a>连接服务器</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh root@172.16.xx.xxx</span><br></pre></td></tr></table></figure>
+
+<h2 id="部署-Gitea-服务"><a href="#部署-Gitea-服务" class="headerlink" title="部署 Gitea 服务"></a>部署 Gitea 服务</h2><p>上传安装脚本：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">scp &quot;D:\xxx\install_gitea.sh&quot; root@172.16.xx.xxx:/root/script/</span><br></pre></td></tr></table></figure>
+
+<p>授权：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">chmod +x ./install_gitea.sh</span><br></pre></td></tr></table></figure>
+
+<p>执行：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./install_gitea.sh</span><br></pre></td></tr></table></figure>
+
+<h2 id="Gitea-安装脚本设计亮点"><a href="#Gitea-安装脚本设计亮点" class="headerlink" title="Gitea 安装脚本设计亮点"></a>Gitea 安装脚本设计亮点</h2><p>本次脚本主要进行了以下优化：</p>
+<h3 id="自动检测数据盘挂载"><a href="#自动检测数据盘挂载" class="headerlink" title="自动检测数据盘挂载"></a>自动检测数据盘挂载</h3><p>避免重启后目录丢失。</p>
+<p>自动写入：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/fstab</span><br></pre></td></tr></table></figure>
+
+<p>实现开机自动挂载。</p>
+<h3 id="systemd-服务化管理"><a href="#systemd-服务化管理" class="headerlink" title="systemd 服务化管理"></a>systemd 服务化管理</h3><p>实现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl start gitea</span><br><span class="line">systemctl stop gitea</span><br><span class="line">systemctl restart gitea</span><br></pre></td></tr></table></figure>
+
+<p>便于后续运维。</p>
+<h3 id="独立-git-用户"><a href="#独立-git-用户" class="headerlink" title="独立 git 用户"></a>独立 git 用户</h3><p>避免 root 直接运行服务。</p>
+<p>提高安全性。</p>
+<h2 id="安装-MariaDB"><a href="#安装-MariaDB" class="headerlink" title="安装 MariaDB"></a>安装 MariaDB</h2><p>执行数据库脚本：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./install_mysql.sh</span><br></pre></td></tr></table></figure>
+
+<p>自动完成：</p>
+<ul>
+<li>MariaDB 安装</li>
+<li>数据库初始化</li>
+<li>Gitea 数据库创建</li>
+<li>用户授权</li>
+</ul>
+<h2 id="初始化-Gitea"><a href="#初始化-Gitea" class="headerlink" title="初始化 Gitea"></a>初始化 Gitea</h2><p>访问：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://172.16.xx.xxx:3000</span><br></pre></td></tr></table></figure>
+
+<p>配置：</p>
+<h3 id="数据库"><a href="#数据库" class="headerlink" title="数据库"></a>数据库</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">数据库：gitea</span><br><span class="line">用户名：gitea</span><br><span class="line">密码：xxxx</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="管理员账号"><a href="#管理员账号" class="headerlink" title="管理员账号"></a>管理员账号</h3><p>创建管理员账号。</p>
+<p>建议：</p>
+<ul>
+<li>不使用 admin</li>
+<li>使用统一管理员命名</li>
+</ul>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gitadmin</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="禁止用户自行注册"><a href="#禁止用户自行注册" class="headerlink" title="禁止用户自行注册"></a>禁止用户自行注册</h2><p>制造业内部系统通常不允许开放注册。</p>
+<p>修改：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/data/gitea/custom/conf/app.ini</span><br></pre></td></tr></table></figure>
+
+<p>增加：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[service]</span><br><span class="line">DISABLE_REGISTRATION = true</span><br></pre></td></tr></table></figure>
+
+<p>重启：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart gitea</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="建立组织规范"><a href="#建立组织规范" class="headerlink" title="建立组织规范"></a>建立组织规范</h2><p>建议每个业务系统建立独立组织：</p>
+<table>
+<thead>
+<tr>
+<th>组织</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MES</td>
+<td>制造执行系统</td>
+</tr>
+<tr>
+<td>ERP</td>
+<td>企业资源计划</td>
+</tr>
+<tr>
+<td>OA</td>
+<td>办公自动化</td>
+</tr>
+<tr>
+<td>xxx_AP</td>
+<td>公司内部应用平台</td>
+</tr>
+</tbody></table>
+<p>这样后期：</p>
+<ul>
+<li>权限管理</li>
+<li>仓库归类</li>
+<li>人员管理</li>
+</ul>
+<p>会非常清晰。</p>
+<h2 id="仓库命名规范"><a href="#仓库命名规范" class="headerlink" title="仓库命名规范"></a>仓库命名规范</h2><p>统一格式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">项目名称_开发语言_具体功能</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">MES_Java_xxxx</span><br><span class="line">MES_Vue_xxxx</span><br><span class="line">xxx_Java_Internal</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="SSH-免密登录配置"><a href="#SSH-免密登录配置" class="headerlink" title="SSH 免密登录配置"></a>SSH 免密登录配置</h2><p>生成 Key：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t ed25519 -C &quot;公司邮箱&quot;</span><br></pre></td></tr></table></figure>
+
+<p>查看公钥：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat ~/.ssh/id_ed25519.pub</span><br></pre></td></tr></table></figure>
+
+<p>复制到：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">头像 → 设置 → SSH/GPG Keys</span><br></pre></td></tr></table></figure>
+
+<p>即可。</p>
+<h2 id="多-Git-源管理"><a href="#多-Git-源管理" class="headerlink" title="多 Git 源管理"></a>多 Git 源管理</h2><p>由于开发人员可能同时使用：</p>
+<ul>
+<li>GitHub</li>
+<li>Gitee</li>
+<li>公司 Gitea</li>
+</ul>
+<p>因此建议配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/.ssh/config</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Host gitea</span><br><span class="line">    HostName 172.16.xx.xxx</span><br><span class="line">    User git</span><br><span class="line">    IdentityFile ~/.ssh/id_ed25519_gitea</span><br></pre></td></tr></table></figure>
+
+<p>后续 clone：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git clone git@gitea:MES/MES_Python_Script.git</span><br></pre></td></tr></table></figure>
+
+<p>即可自动使用对应 Key。</p>
+<h2 id="运维常用命令"><a href="#运维常用命令" class="headerlink" title="运维常用命令"></a>运维常用命令</h2><h3 id="查看状态"><a href="#查看状态" class="headerlink" title="查看状态"></a>查看状态</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl status gitea</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="重启服务"><a href="#重启服务" class="headerlink" title="重启服务"></a>重启服务</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart gitea</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="查看日志"><a href="#查看日志" class="headerlink" title="查看日志"></a>查看日志</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo journalctl -u gitea -xe</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="查看数据库"><a href="#查看数据库" class="headerlink" title="查看数据库"></a>查看数据库</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql -u root -p</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="实施成果-收益"><a href="#实施成果-收益" class="headerlink" title="实施成果 &amp; 收益"></a>实施成果 &amp; 收益</h2><p>经过本次落地后：</p>
+<h3 id="开发协作效率明显提升"><a href="#开发协作效率明显提升" class="headerlink" title="开发协作效率明显提升"></a>开发协作效率明显提升</h3><p>实现：</p>
+<ul>
+<li>多分支开发</li>
+<li>独立 Feature 管理</li>
+<li>Merge Request</li>
+<li>代码回溯</li>
+</ul>
+<p>多人协作更加规范。</p>
+<h3 id="权限管理统一化"><a href="#权限管理统一化" class="headerlink" title="权限管理统一化"></a>权限管理统一化</h3><p>通过：</p>
+<ul>
+<li>组织</li>
+<li>团队</li>
+<li>仓库</li>
+</ul>
+<p>实现精细化权限管理。</p>
+<h3 id="运维标准化"><a href="#运维标准化" class="headerlink" title="运维标准化"></a>运维标准化</h3><p>通过脚本化部署：</p>
+<ul>
+<li>新服务器快速搭建</li>
+<li>自动初始化</li>
+<li>自动配置服务</li>
+</ul>
+<p>降低人工运维成本。</p>
+<h3 id="为后续-DevOps-做准备"><a href="#为后续-DevOps-做准备" class="headerlink" title="为后续 DevOps 做准备"></a>为后续 DevOps 做准备</h3><p>后续可逐步扩展：</p>
+<ul>
+<li>Jenkins</li>
+<li>Webhook</li>
+<li>自动部署</li>
+<li>Docker</li>
+<li>CI&#x2F;CD</li>
+</ul>
+<p>形成完整内部研发平台。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>对于制造业中小型团队而言：</p>
+<p>不一定需要直接上 GitLab。</p>
+<p>Gitea：</p>
+<ul>
+<li>轻量</li>
+<li>易维护</li>
+<li>占用资源低</li>
+<li>功能足够</li>
+</ul>
+<p>更适合作为企业内部 Git 服务起点。</p>
+<p>本次实践不仅解决了 SVN 多人协作问题，也为后续自动化运维、CI&#x2F;CD、统一研发平台建设打下了基础。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Git/" rel="tag"># Git</a>
+              <a href="/tags/Gitea/" rel="tag"># Gitea</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/07-Other/%E5%9F%BA%E4%BA%8EOA%E6%B5%81%E7%A8%8B%E9%A9%B1%E5%8A%A8%E7%9A%84%E4%BC%81%E4%B8%9A%E8%B4%A6%E5%8F%B7%E8%87%AA%E5%8A%A8%E5%8C%96%E5%BC%80%E9%80%9A%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%B8%B2%E8%81%94%20AD%E3%80%81MES%E3%80%81%E9%97%A8%E7%A6%81%E3%80%81%E9%82%AE%E7%AE%B1%E3%80%81%E5%B8%86%E8%BD%AF%E7%9A%84%E4%B8%80%E4%BD%93%E5%8C%96%E8%87%AA%E5%8A%A8%E8%BF%90%E7%BB%B4%E5%B9%B3%E5%8F%B0/" rel="prev" title="基于OA流程驱动的企业账号自动化开通实践：串联AD&#x2F;MES、门禁、邮箱、帆软的一体化自动运维平台">
+                  <i class="fa fa-angle-left"></i> 基于OA流程驱动的企业账号自动化开通实践：串联AD/MES、门禁、邮箱、帆软的一体化自动运维平台
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/03-%E5%B7%A5%E5%85%B7/02-Nexus/Nexus%E7%A7%81%E6%9C%8D%E4%BB%93%E5%BA%93%E6%90%AD%E5%BB%BA%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%A7%A3%E5%86%B3Maven%E3%80%81NPM%E4%BE%9D%E8%B5%96%E4%B8%A2%E5%A4%B1%E4%B8%8E%E7%A6%BB%E7%BA%BF%E9%83%A8%E7%BD%B2%E9%97%AE%E9%A2%98/" rel="next" title="Nexus私服仓库搭建实践：解决Maven、NPM依赖丢失与离线部署问题">
+                  Nexus私服仓库搭建实践：解决Maven、NPM依赖丢失与离线部署问题 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">27k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:38</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

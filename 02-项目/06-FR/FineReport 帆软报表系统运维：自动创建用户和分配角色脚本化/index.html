@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="在上一篇《FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题》中，我们完成了 FineReport 报表权限体系的梳理与角色治理。 但新的问题很快出现： 虽然角色已经标准化，但用户创建、角色分配、权限开通，依然需要管理员重复执行大量人工操作。 本文将分享：  如何通过 Python 对接 FineReport OpenAPI 自动创建用户 自动分配角色 自动生成邮箱 自动读取">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FineReport 帆软报表系统运维实践（二）：创建用户与角色分配的脚本化自动运维">
+<meta property="og:url" content="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%EF%BC%9A%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%92%8C%E5%88%86%E9%85%8D%E8%A7%92%E8%89%B2%E8%84%9A%E6%9C%AC%E5%8C%96/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="在上一篇《FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题》中，我们完成了 FineReport 报表权限体系的梳理与角色治理。 但新的问题很快出现： 虽然角色已经标准化，但用户创建、角色分配、权限开通，依然需要管理员重复执行大量人工操作。 本文将分享：  如何通过 Python 对接 FineReport OpenAPI 自动创建用户 自动分配角色 自动生成邮箱 自动读取">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-10-18T01:11:29.000Z">
+<meta property="article:modified_time" content="2026-05-25T03:39:59.539Z">
+<meta property="article:author" content="mrko">
+<meta property="article:tag" content="自动化">
+<meta property="article:tag" content="FR">
+<meta property="article:tag" content="帆软报表">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%EF%BC%9A%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%92%8C%E5%88%86%E9%85%8D%E8%A7%92%E8%89%B2%E8%84%9A%E6%9C%AC%E5%8C%96/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%EF%BC%9A%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%92%8C%E5%88%86%E9%85%8D%E8%A7%92%E8%89%B2%E8%84%9A%E6%9C%AC%E5%8C%96/","path":"02-项目/06-FR/FineReport 帆软报表系统运维：自动创建用户和分配角色脚本化/","title":"FineReport 帆软报表系统运维实践（二）：创建用户与角色分配的脚本化自动运维"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>FineReport 帆软报表系统运维实践（二）：创建用户与角色分配的脚本化自动运维 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%B9%E7%9B%AE%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">项目背景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%A7%84%E6%A8%A1%E6%89%A9%E5%A4%A7"><span class="nav-number">1.1.</span> <span class="nav-text">报表系统规模扩大</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8A%E4%B8%80%E9%98%B6%E6%AE%B5%E5%B7%B2%E7%BB%8F%E5%AE%8C%E6%88%90%E8%A7%92%E8%89%B2%E6%B2%BB%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">上一阶段已经完成角色治理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%B0%E7%9A%84%E9%97%AE%E9%A2%98%E5%87%BA%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">新的问题出现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E5%BC%80%E9%80%9A%E4%BE%9D%E7%84%B6%E9%AB%98%E5%BA%A6%E4%BE%9D%E8%B5%96%E4%BA%BA%E5%B7%A5"><span class="nav-number">2.1.</span> <span class="nav-text">用户开通依然高度依赖人工</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%97%9B%E7%82%B9"><span class="nav-number">2.2.</span> <span class="nav-text">痛点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">问题分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#FineReport-%E6%9C%AC%E8%BA%AB%E6%94%AF%E6%8C%81-OpenAPI"><span class="nav-number">3.1.</span> <span class="nav-text">FineReport 本身支持 OpenAPI</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF%E5%B7%B2%E7%BB%8F%E5%AD%98%E5%9C%A8%E4%BA%8E%E5%85%B6%E5%AE%83%E7%B3%BB%E7%BB%9F"><span class="nav-number">3.2.</span> <span class="nav-text">用户信息已经存在于其它系统</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E8%AE%BE%E8%AE%A1"><span class="nav-number">4.</span> <span class="nav-text">解决方案设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B4%E4%BD%93%E6%96%B9%E6%A1%88"><span class="nav-number">4.1.</span> <span class="nav-text">整体方案</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E5%AE%9E%E7%8E%B0"><span class="nav-number">5.</span> <span class="nav-text">核心实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Token-%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6"><span class="nav-number">5.1.</span> <span class="nav-text">Token 缓存机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%AD%E6%96%87%E5%A7%93%E5%90%8D%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E9%82%AE%E7%AE%B1"><span class="nav-number">5.2.</span> <span class="nav-text">中文姓名自动生成邮箱</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7"><span class="nav-number">5.3.</span> <span class="nav-text">自动创建用户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E5%88%86%E9%85%8D%E8%A7%92%E8%89%B2"><span class="nav-number">5.4.</span> <span class="nav-text">自动分配角色</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E8%AF%BB%E5%8F%96%E6%A8%A1%E5%BC%8F"><span class="nav-number">5.5.</span> <span class="nav-text">自动读取模式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%96%BD%E6%88%90%E6%9E%9C%E4%B8%8E%E6%94%B6%E7%9B%8A"><span class="nav-number">6.</span> <span class="nav-text">实施成果与收益</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9D%83%E9%99%90%E5%BC%80%E9%80%9A%E6%95%88%E7%8E%87%E6%8F%90%E5%8D%87"><span class="nav-number">6.1.</span> <span class="nav-text">权限开通效率提升</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%8F%E5%B0%91%E4%BA%BA%E4%B8%BA%E9%94%99%E8%AF%AF"><span class="nav-number">6.2.</span> <span class="nav-text">减少人为错误</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%AF%E6%8C%81%E5%90%8E%E7%BB%AD%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90"><span class="nav-number">6.3.</span> <span class="nav-text">支持后续系统集成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%90%E7%BB%B4%E4%BB%8E%E2%80%9C%E4%BA%BA%E5%B7%A5%E2%80%9D%E8%BD%AC%E5%90%91%E2%80%9C%E5%B9%B3%E5%8F%B0%E5%8C%96%E2%80%9D"><span class="nav-number">6.4.</span> <span class="nav-text">运维从“人工”转向“平台化”</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%84%E5%88%92"><span class="nav-number">7.</span> <span class="nav-text">规划</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number"></span> <span class="nav-text">总结</span></a></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%EF%BC%9A%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%92%8C%E5%88%86%E9%85%8D%E8%A7%92%E8%89%B2%E8%84%9A%E6%9C%AC%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="FineReport 帆软报表系统运维实践（二）：创建用户与角色分配的脚本化自动运维 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          FineReport 帆软报表系统运维实践（二）：创建用户与角色分配的脚本化自动运维
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-10-18 09:11:29" itemprop="dateCreated datePublished" datetime="2025-10-18T09:11:29+08:00">2025-10-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index"><span itemprop="name">02-项目</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/06-FR/" itemprop="url" rel="index"><span itemprop="name">06-FR</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>在上一篇《FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题》中，<br>我们完成了 FineReport 报表权限体系的梳理与角色治理。</p>
+<p>但新的问题很快出现：</p>
+<p>虽然角色已经标准化，但用户创建、角色分配、权限开通，<br>依然需要管理员重复执行大量人工操作。</p>
+<p>本文将分享：</p>
+<ul>
+<li>如何通过 Python 对接 FineReport OpenAPI</li>
+<li>自动创建用户</li>
+<li>自动分配角色</li>
+<li>自动生成邮箱</li>
+<li>自动读取权限配置</li>
+<li>实现“报表权限自动化开通”</li>
+</ul>
+</blockquote>
+<blockquote>
+<p>最终实现：<br>从“人工运维”升级为“脚本化自动运维”。</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="项目背景"><a href="#项目背景" class="headerlink" title="项目背景"></a>项目背景</h2><h3 id="报表系统规模扩大"><a href="#报表系统规模扩大" class="headerlink" title="报表系统规模扩大"></a>报表系统规模扩大</h3><p>随着公司内部报表数量不断增加，<br>FineReport 已逐渐成为：</p>
+<ul>
+<li>MES</li>
+<li>制造看板</li>
+<li>品质分析</li>
+<li>生产追溯</li>
+<li>设备监控</li>
+</ul>
+<p>等系统的重要数据展示平台。</p>
+<p>与此同时，<br>报表使用人员也快速增长。</p>
+<h3 id="上一阶段已经完成角色治理"><a href="#上一阶段已经完成角色治理" class="headerlink" title="上一阶段已经完成角色治理"></a>上一阶段已经完成角色治理</h3><p>在上一篇实践中，<br>已经完成：</p>
+<ul>
+<li>角色规范化</li>
+<li>权限归类</li>
+<li>角色职责拆分</li>
+<li>角色命名统一</li>
+</ul>
+<p>解决了历史遗留的“权限混乱”问题。</p>
+<h2 id="新的问题出现"><a href="#新的问题出现" class="headerlink" title="新的问题出现"></a>新的问题出现</h2><h3 id="用户开通依然高度依赖人工"><a href="#用户开通依然高度依赖人工" class="headerlink" title="用户开通依然高度依赖人工"></a>用户开通依然高度依赖人工</h3><p>虽然角色已经标准化，<br>但每次新增员工时，<br>管理员仍需要：</p>
+<ol>
+<li>登录 FineReport 后台</li>
+<li>手动创建用户</li>
+<li>手动填写姓名</li>
+<li>手动设置密码</li>
+<li>手动绑定邮箱</li>
+<li>手动分配角色</li>
+<li>手动核对权限</li>
+</ol>
+<h3 id="痛点"><a href="#痛点" class="headerlink" title="痛点"></a>痛点</h3><h4 id="重复劳动严重"><a href="#重复劳动严重" class="headerlink" title="重复劳动严重"></a>重复劳动严重</h4><p>有新员工、岗位调整、权限变更。</p>
+<p>大量时间消耗在：</p>
+<ul>
+<li>重复点击</li>
+<li>重复输入</li>
+<li>重复分配角色</li>
+</ul>
+<h4 id="容易出现人为错误"><a href="#容易出现人为错误" class="headerlink" title="容易出现人为错误"></a>容易出现人为错误</h4><p>人工操作极易出现：</p>
+<ul>
+<li>漏分配角色</li>
+<li>分错角色</li>
+<li>用户名错误</li>
+<li>邮箱填写错误</li>
+<li>权限遗漏</li>
+</ul>
+<h4 id="权限开通效率低"><a href="#权限开通效率低" class="headerlink" title="权限开通效率低"></a>权限开通效率低</h4><p>业务部门经常反馈：</p>
+<p>“报表权限开通太慢”</p>
+<p>而管理员需要频繁处理中断式工作，<br>影响正常运维。</p>
+<h4 id="缺乏标准化流程"><a href="#缺乏标准化流程" class="headerlink" title="缺乏标准化流程"></a>缺乏标准化流程</h4><p>不同管理员操作习惯不同：</p>
+<ul>
+<li>角色命名不同</li>
+<li>权限分配逻辑不同</li>
+<li>开通流程不同</li>
+</ul>
+<p>导致运维不可追溯。</p>
+<h2 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h2><h3 id="FineReport-本身支持-OpenAPI"><a href="#FineReport-本身支持-OpenAPI" class="headerlink" title="FineReport 本身支持 OpenAPI"></a>FineReport 本身支持 OpenAPI</h3><p>在分析 FineReport 后发现：<br>其实际上提供了完整的 OpenAPI：</p>
+<ul>
+<li>Token 获取</li>
+<li>用户创建</li>
+<li>角色分配</li>
+<li>用户查询</li>
+</ul>
+<p>这意味着：<br>完全可以通过脚本实现自动化运维。</p>
+<h3 id="用户信息已经存在于其它系统"><a href="#用户信息已经存在于其它系统" class="headerlink" title="用户信息已经存在于其它系统"></a>用户信息已经存在于其它系统</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">进一步分析发现：</span><br><span class="line"></span><br><span class="line">员工信息实际上已经存在：OA系统中。</span><br><span class="line"></span><br><span class="line">例如：</span><br><span class="line">- 工号</span><br><span class="line">- 姓名</span><br><span class="line">- 部门</span><br><span class="line">- 岗位</span><br><span class="line"></span><br><span class="line">都已经标准化。</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="权限也已经结构化"><a href="#权限也已经结构化" class="headerlink" title="权限也已经结构化"></a>权限也已经结构化</h4><p>在角色治理完成后：<br>角色已经具备：</p>
+<ul>
+<li>统一命名</li>
+<li>统一职责</li>
+<li>可复用<br>因此：<br>权限实际上已经可以“模板化”。</li>
+</ul>
+<h2 id="解决方案设计"><a href="#解决方案设计" class="headerlink" title="解决方案设计"></a>解决方案设计</h2><h3 id="整体方案"><a href="#整体方案" class="headerlink" title="整体方案"></a>整体方案</h3><p>最终设计如下自动化流程：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">OA 系统配置</span><br><span class="line">        ↓</span><br><span class="line">读取员工信息 JSON</span><br><span class="line">        ↓</span><br><span class="line">Python 自动获取 Token</span><br><span class="line">        ↓</span><br><span class="line">自动创建 FineReport 用户</span><br><span class="line">        ↓</span><br><span class="line">自动生成邮箱</span><br><span class="line">        ↓</span><br><span class="line">自动分配角色</span><br><span class="line">        ↓</span><br><span class="line">输出日志</span><br></pre></td></tr></table></figure>
+
+<h2 id="核心实现"><a href="#核心实现" class="headerlink" title="核心实现"></a>核心实现</h2><h3 id="Token-缓存机制"><a href="#Token-缓存机制" class="headerlink" title="Token 缓存机制"></a>Token 缓存机制</h3><p>FineReport Token 存在有效期。</p>
+<p>如果每次都重新获取：</p>
+<ul>
+<li>增加接口压力</li>
+<li>增加认证耗时</li>
+</ul>
+<p>因此增加本地 token 缓存。</p>
+<p>代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">def get_token():</span><br><span class="line"></span><br><span class="line">    if os.path.exists(TOKEN_FILE):</span><br><span class="line"></span><br><span class="line">        cache = load_json(TOKEN_FILE)</span><br><span class="line"></span><br><span class="line">        if time.time() &lt; cache[&quot;expire_at&quot;]:</span><br><span class="line">            write_log(&quot;使用缓存 token&quot;)</span><br><span class="line">            return cache[&quot;access_token&quot;]</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="中文姓名自动生成邮箱"><a href="#中文姓名自动生成邮箱" class="headerlink" title="中文姓名自动生成邮箱"></a>中文姓名自动生成邮箱</h3><p>由于公司邮箱规则为：</p>
+<p>名.姓@domain</p>
+<p>因此增加：</p>
+<ul>
+<li>中文转拼音</li>
+<li>复姓处理</li>
+<li>自动邮箱生成</li>
+</ul>
+<p>代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">DOUBLE_SURNAMES = &#123;</span><br><span class="line">    &quot;欧阳&quot;, &quot;司马&quot;, &quot;上官&quot;, &quot;诸葛&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="自动创建用户"><a href="#自动创建用户" class="headerlink" title="自动创建用户"></a>自动创建用户</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">payload = [&#123;</span><br><span class="line">    &quot;username&quot;: username,</span><br><span class="line">    &quot;realName&quot;: realname,</span><br><span class="line">    &quot;password&quot;: PASSWORD,</span><br><span class="line">    &quot;email&quot;: name_to_email(realname),</span><br><span class="line">&#125;]</span><br></pre></td></tr></table></figure>
+
+<p>说明：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">通过 OpenAPI 批量创建用户，</span><br><span class="line">避免后台人工录入。</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="自动分配角色"><a href="#自动分配角色" class="headerlink" title="自动分配角色"></a>自动分配角色</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">payload = [&#123;</span><br><span class="line">    &quot;username&quot;: username,</span><br><span class="line">    &quot;add&quot;: roles</span><br><span class="line">&#125;]</span><br></pre></td></tr></table></figure>
+
+<p>说明：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">角色分配直接通过接口完成，</span><br><span class="line">实现权限模板化。</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="自动读取模式"><a href="#自动读取模式" class="headerlink" title="自动读取模式"></a>自动读取模式</h3><p>适合集成 OA 流程：</p>
+<p>系统自动读取：</p>
+<ul>
+<li>staff_detail.json</li>
+<li>fr_control.json</li>
+</ul>
+<p>无需人工干预。</p>
+<h2 id="实施成果与收益"><a href="#实施成果与收益" class="headerlink" title="实施成果与收益"></a>实施成果与收益</h2><h3 id="权限开通效率提升"><a href="#权限开通效率提升" class="headerlink" title="权限开通效率提升"></a>权限开通效率提升</h3><p>原先：<br>单个用户开通约需要 3~5 分钟。</p>
+<p>自动化后：<br>平均耗时降低至 10 秒以内。</p>
+<h3 id="减少人为错误"><a href="#减少人为错误" class="headerlink" title="减少人为错误"></a>减少人为错误</h3><p>通过：</p>
+<ul>
+<li>标准角色</li>
+<li>自动脚本</li>
+<li>自动邮箱生成</li>
+</ul>
+<p>基本消除了：</p>
+<ul>
+<li>权限遗漏</li>
+<li>角色错误</li>
+<li>用户信息错误</li>
+</ul>
+<h3 id="支持后续系统集成"><a href="#支持后续系统集成" class="headerlink" title="支持后续系统集成"></a>支持后续系统集成</h3><p>由于已经实现接口化：<br>后续可进一步接入：</p>
+<ul>
+<li>OA 审批</li>
+<li>AD 域账号</li>
+</ul>
+<hr>
+<h3 id="运维从“人工”转向“平台化”"><a href="#运维从“人工”转向“平台化”" class="headerlink" title="运维从“人工”转向“平台化”"></a>运维从“人工”转向“平台化”</h3><p>这次改造最大的价值：<br>并不只是“减少点击”。<br>而是：<br>将原本依赖管理员经验的人工操作，<br>逐渐转变为：</p>
+<ul>
+<li>标准化</li>
+<li>配置化</li>
+<li>自动化<br>的运维体系。</li>
+</ul>
+<hr>
+<h2 id="规划"><a href="#规划" class="headerlink" title="规划"></a>规划</h2><p>下一阶段计划继续完善：</p>
+<ul>
+<li>自动同步 AD域控账号，分配权限</li>
+<li>自动创建邮箱账号，分配权限</li>
+<li>自动创建门禁用户，分配权限。</li>
+<li>自动创建MES系统账号，分配权限。</li>
+</ul>
+<hr>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>很多时候：</p>
+<p>真正复杂的，<br>并不是技术本身。</p>
+<p>而是：</p>
+<p>如何把零散、重复、依赖人工经验的操作，<br>逐步沉淀为标准化流程。</p>
+<p>FineReport 权限自动化，<br>只是整个运维自动化中的一步。</p>
+<p>但这一步，<br>能明显降低运维成本，<br>也为后续平台化建设打下基础。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag"># 自动化</a>
+              <a href="/tags/FR/" rel="tag"># FR</a>
+              <a href="/tags/%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8/" rel="tag"># 帆软报表</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%A7%A3%E5%86%B3%E8%A7%92%E8%89%B2%E6%9D%83%E9%99%90%E6%B7%B7%E4%B9%B1%E9%97%AE%E9%A2%98/" rel="prev" title="FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题">
+                  <i class="fa fa-angle-left"></i> FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/07-Other/%E5%88%B6%E9%80%A0%E4%B8%9A%20AD%20%E5%9F%9F%E8%B4%A6%E5%8F%B7%E8%87%AA%E5%8A%A8%E5%8C%96%E5%BC%80%E9%80%9A%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%BB%8E%E6%89%8B%E5%B7%A5%E7%94%B3%E8%AF%B7%E5%88%B0%20Python%20%E8%84%9A%E6%9C%AC%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA/" rel="next" title="制造业AD域账号自动化开通实践：从手工申请到脚本自动创建">
+                  制造业AD域账号自动化开通实践：从手工申请到脚本自动创建 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">27k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:38</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

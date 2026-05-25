@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="在制造业信息化推进过程中，OA 已不仅仅只是“审批工具”，而逐渐演变成企业内部的流程协同平台。从最开始接触 OA 流程，到能够独立分析需求、设计流程图、建立表单、配置节点、开发复杂条件分支，再到后续的台账建模与数据汇总，我逐步完成了从“使用者”到“流程开发者”的转变。 本文将结合实际项目经验，以泛微 E9 为例，系统整理：  OA 流程是什么 流程与台账的区别 如何快速搭建一个新流程 节点、会签">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OA流程平台实践：从流程入门到复杂业务编排与台账建设">
+<meta property="og:url" content="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/01-OA/OA%E6%B5%81%E7%A8%8B%E5%B9%B3%E5%8F%B0%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%BB%8E%E6%B5%81%E7%A8%8B%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%8D%E6%9D%82%E4%B8%9A%E5%8A%A1%E7%BC%96%E6%8E%92%E4%B8%8E%E5%8F%B0%E8%B4%A6%E5%BB%BA%E8%AE%BE/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="在制造业信息化推进过程中，OA 已不仅仅只是“审批工具”，而逐渐演变成企业内部的流程协同平台。从最开始接触 OA 流程，到能够独立分析需求、设计流程图、建立表单、配置节点、开发复杂条件分支，再到后续的台账建模与数据汇总，我逐步完成了从“使用者”到“流程开发者”的转变。 本文将结合实际项目经验，以泛微 E9 为例，系统整理：  OA 流程是什么 流程与台账的区别 如何快速搭建一个新流程 节点、会签">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-12-05T01:08:39.000Z">
+<meta property="article:modified_time" content="2026-05-25T03:39:59.539Z">
+<meta property="article:author" content="mrko">
+<meta property="article:tag" content="OA">
+<meta property="article:tag" content="流程">
+<meta property="article:tag" content="台账">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/01-OA/OA%E6%B5%81%E7%A8%8B%E5%B9%B3%E5%8F%B0%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%BB%8E%E6%B5%81%E7%A8%8B%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%8D%E6%9D%82%E4%B8%9A%E5%8A%A1%E7%BC%96%E6%8E%92%E4%B8%8E%E5%8F%B0%E8%B4%A6%E5%BB%BA%E8%AE%BE/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/01-OA/OA%E6%B5%81%E7%A8%8B%E5%B9%B3%E5%8F%B0%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%BB%8E%E6%B5%81%E7%A8%8B%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%8D%E6%9D%82%E4%B8%9A%E5%8A%A1%E7%BC%96%E6%8E%92%E4%B8%8E%E5%8F%B0%E8%B4%A6%E5%BB%BA%E8%AE%BE/","path":"02-项目/01-OA/OA流程平台实践：从流程入门到复杂业务编排与台账建设/","title":"OA流程平台实践：从流程入门到复杂业务编排与台账建设"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>OA流程平台实践：从流程入门到复杂业务编排与台账建设 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">遇到的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%97%9B%E7%82%B9"><span class="nav-number">2.1.</span> <span class="nav-text">痛点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E6%B5%81%E7%A8%8B%E9%9C%80%E6%B1%82%E5%8F%98%E5%8C%96%E9%9D%9E%E5%B8%B8%E9%A2%91%E7%B9%81"><span class="nav-number">2.2.</span> <span class="nav-text">1. 流程需求变化非常频繁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%B5%81%E7%A8%8B%E5%9B%BE%E5%A4%8D%E6%9D%82%E5%BA%A6%E8%B6%8A%E6%9D%A5%E8%B6%8A%E9%AB%98"><span class="nav-number">2.3.</span> <span class="nav-text">2. 流程图复杂度越来越高</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E8%A1%A8%E5%8D%95%E4%B8%8E%E4%B8%9A%E5%8A%A1%E5%BC%BA%E5%85%B3%E8%81%94"><span class="nav-number">2.4.</span> <span class="nav-text">3. 表单与业务强关联</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%B5%81%E7%A8%8B%E5%AE%8C%E6%88%90%E5%90%8E%E7%BC%BA%E5%B0%91%E6%95%B0%E6%8D%AE%E6%B2%89%E6%B7%80"><span class="nav-number">2.5.</span> <span class="nav-text">4. 流程完成后缺少数据沉淀</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">问题分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF-OA-%E6%B5%81%E7%A8%8B"><span class="nav-number">4.</span> <span class="nav-text">什么是 OA 流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OA-%E6%B5%81%E7%A8%8B%E7%9A%84%E6%A0%B8%E5%BF%83%E7%BB%84%E6%88%90"><span class="nav-number">5.</span> <span class="nav-text">OA 流程的核心组成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E8%A1%A8%E5%8D%95"><span class="nav-number">5.1.</span> <span class="nav-text">1. 表单</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="nav-number">5.2.</span> <span class="nav-text">2. 流程图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E8%8A%82%E7%82%B9"><span class="nav-number">5.3.</span> <span class="nav-text">3. 节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%98%8E%E7%BB%86%E8%A1%A8"><span class="nav-number">5.4.</span> <span class="nav-text">4. 明细表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%8F%B0%E8%B4%A6"><span class="nav-number">5.5.</span> <span class="nav-text">5. 台账</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%8F%B0%E8%B4%A6"><span class="nav-number">6.</span> <span class="nav-text">什么是台账</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B"><span class="nav-number">6.1.</span> <span class="nav-text">流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%B0%E8%B4%A6"><span class="nav-number">6.2.</span> <span class="nav-text">台账</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OA-E9-%E6%8A%80%E6%9C%AF%E6%9E%B6%E6%9E%84%E7%90%86%E8%A7%A3"><span class="nav-number">7.</span> <span class="nav-text">OA E9 技术架构理解</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">8.</span> <span class="nav-text">解决方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OA-%E6%B5%81%E7%A8%8B%E5%AD%A6%E4%B9%A0%E8%B7%AF%E7%BA%BF"><span class="nav-number">9.</span> <span class="nav-text">OA 流程学习路线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%A6%E7%BB%86%E6%95%99%E7%A8%8B"><span class="nav-number">10.</span> <span class="nav-text">详细教程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E5%BB%BA%E7%AB%8B%E7%AC%AC%E4%B8%80%E4%B8%AA%E6%B5%81%E7%A8%8B"><span class="nav-number">11.</span> <span class="nav-text">一、建立第一个流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E6%96%B0%E5%BB%BA%E8%A1%A8%E5%8D%95"><span class="nav-number">11.1.</span> <span class="nav-text">1. 新建表单</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E9%85%8D%E7%BD%AE%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="nav-number">11.2.</span> <span class="nav-text">2. 配置流程图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E8%8A%82%E7%82%B9%E9%85%8D%E7%BD%AE"><span class="nav-number">11.3.</span> <span class="nav-text">3. 节点配置</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E7%90%86%E8%A7%A3%E4%BC%9A%E7%AD%BE"><span class="nav-number">12.</span> <span class="nav-text">二、理解会签</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%9A%E7%AD%BE"><span class="nav-number">12.1.</span> <span class="nav-text">会签</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%9E%E4%BC%9A%E7%AD%BE"><span class="nav-number">12.2.</span> <span class="nav-text">非会签</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B9%B6%E8%A1%8C%E4%BC%9A%E7%AD%BE"><span class="nav-number">12.3.</span> <span class="nav-text">并行会签</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81HTML-%E8%A1%A8%E5%8D%95%E5%BC%80%E5%8F%91"><span class="nav-number">13.</span> <span class="nav-text">三、HTML 表单开发</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90%E6%A0%87%E9%A2%98"><span class="nav-number">14.</span> <span class="nav-text">自动生成标题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E5%8A%A8%E6%80%81%E6%8E%A7%E5%88%B6%E5%AD%97%E6%AE%B5%E5%B1%9E%E6%80%A7"><span class="nav-number">15.</span> <span class="nav-text">四、动态控制字段属性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E5%AD%97%E6%AE%B5%E8%81%94%E5%8A%A8"><span class="nav-number">16.</span> <span class="nav-text">五、字段联动</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E5%A4%8D%E6%9D%82%E6%B5%81%E7%A8%8B%E8%AE%BE%E8%AE%A1"><span class="nav-number">17.</span> <span class="nav-text">六、复杂流程设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%BA%E5%B7%AE%E7%94%B3%E8%AF%B7%E6%B5%81%E7%A8%8B"><span class="nav-number">17.1.</span> <span class="nav-text">出差申请流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9D%A1%E4%BB%B6%E7%A4%BA%E4%BE%8B"><span class="nav-number">17.2.</span> <span class="nav-text">条件示例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E8%B6%85%E6%97%B6%E6%8F%90%E9%86%92"><span class="nav-number">18.</span> <span class="nav-text">七、超时提醒</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AB%E3%80%81%E6%98%8E%E7%BB%86%E8%A1%A8%E5%AE%9E%E8%B7%B5"><span class="nav-number">19.</span> <span class="nav-text">八、明细表实践</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E4%BA%A7%E6%94%AF%E6%8F%B4%E6%B5%81%E7%A8%8B"><span class="nav-number">19.1.</span> <span class="nav-text">生产支援流程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B9%9D%E3%80%81%E5%BB%BA%E6%A8%A1%E5%BC%95%E6%93%8E%E4%B8%8E%E5%8F%B0%E8%B4%A6"><span class="nav-number">20.</span> <span class="nav-text">九、建模引擎与台账</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%BB%BA%E6%A8%A1%E5%BC%95%E6%93%8E"><span class="nav-number">21.</span> <span class="nav-text">为什么需要建模引擎</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%B0%E8%B4%A6%E7%9A%84%E6%A0%B8%E5%BF%83%E8%83%BD%E5%8A%9B"><span class="nav-number">22.</span> <span class="nav-text">台账的核心能力</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9F%A5%E8%AF%A2"><span class="nav-number">22.1.</span> <span class="nav-text">查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5"><span class="nav-number">22.2.</span> <span class="nav-text">数据同步</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%B0%E8%B4%A6%E5%BB%BA%E8%AE%BE%E6%AD%A5%E9%AA%A4"><span class="nav-number">23.</span> <span class="nav-text">台账建设步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%BB%BA%E5%BA%94%E7%94%A8"><span class="nav-number">23.1.</span> <span class="nav-text">1. 建应用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%BB%BA%E6%A8%A1%E5%9D%97"><span class="nav-number">23.2.</span> <span class="nav-text">2. 建模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%BB%BA%E8%A1%A8%E5%8D%95"><span class="nav-number">23.3.</span> <span class="nav-text">3. 建表单</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E5%BB%BA%E6%9F%A5%E8%AF%A2"><span class="nav-number">23.4.</span> <span class="nav-text">4. 建查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E9%85%8D%E7%BD%AE%E6%B5%81%E7%A8%8B%E8%BD%AC%E6%95%B0%E6%8D%AE"><span class="nav-number">23.5.</span> <span class="nav-text">5. 配置流程转数据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%81%E3%80%81%E5%AE%9E%E9%99%85%E9%A1%B9%E7%9B%AE%E7%BB%8F%E9%AA%8C%E6%80%BB%E7%BB%93"><span class="nav-number">24.</span> <span class="nav-text">十、实际项目经验总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%85%88%E6%A2%B3%E7%90%86%E4%B8%9A%E5%8A%A1"><span class="nav-number">25.</span> <span class="nav-text">1. 先梳理业务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%85%88%E7%94%BB%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="nav-number">26.</span> <span class="nav-text">2. 先画流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%85%88%E5%BB%BA%E7%AB%8B%E5%AD%97%E6%AE%B5"><span class="nav-number">27.</span> <span class="nav-text">3. 先建立字段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-HTML-%E6%A8%A1%E6%9D%BF%E5%85%88%E7%BB%9F%E4%B8%80"><span class="nav-number">28.</span> <span class="nav-text">4. HTML 模板先统一</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%B5%81%E7%A8%8B%E6%9D%A1%E4%BB%B6%E4%B8%8D%E8%A6%81%E5%86%99%E2%80%9C%E9%BB%98%E8%AE%A4%E2%80%9D"><span class="nav-number">29.</span> <span class="nav-text">5. 流程条件不要写“默认”</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%96%BD%E6%88%90%E6%9E%9C-%E6%94%B6%E7%9B%8A"><span class="nav-number">30.</span> <span class="nav-text">实施成果 &amp; 收益</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">31.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/01-OA/OA%E6%B5%81%E7%A8%8B%E5%B9%B3%E5%8F%B0%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%BB%8E%E6%B5%81%E7%A8%8B%E5%85%A5%E9%97%A8%E5%88%B0%E5%A4%8D%E6%9D%82%E4%B8%9A%E5%8A%A1%E7%BC%96%E6%8E%92%E4%B8%8E%E5%8F%B0%E8%B4%A6%E5%BB%BA%E8%AE%BE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="OA流程平台实践：从流程入门到复杂业务编排与台账建设 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OA流程平台实践：从流程入门到复杂业务编排与台账建设
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-12-05 09:08:39" itemprop="dateCreated datePublished" datetime="2025-12-05T09:08:39+08:00">2025-12-05</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index"><span itemprop="name">02-项目</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/01-OA/" itemprop="url" rel="index"><span itemprop="name">01-OA</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>9 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>在制造业信息化推进过程中，OA 已不仅仅只是“审批工具”，而逐渐演变成企业内部的流程协同平台。<br>从最开始接触 OA 流程，到能够独立分析需求、设计流程图、建立表单、配置节点、开发复杂条件分支，再到后续的台账建模与数据汇总，我逐步完成了从“使用者”到“流程开发者”的转变。</p>
+<p>本文将结合实际项目经验，以泛微 E9 为例，系统整理：</p>
+<ul>
+<li>OA 流程是什么</li>
+<li>流程与台账的区别</li>
+<li>如何快速搭建一个新流程</li>
+<li>节点、会签、转办、抄送等核心概念</li>
+<li>HTML 表单与 JS 动态控制</li>
+<li>复杂审批流设计思路</li>
+<li>建模引擎与台账建设</li>
+<li>制造业场景中的实际案例</li>
+</ul>
+<p>适合：</p>
+<ul>
+<li>初学 OA 的开发人员</li>
+<li>企业数字化运维人员</li>
+<li>MES &#x2F; ERP &#x2F; OA 集成方向工程师</li>
+<li>想从“会用 OA”提升到“会设计 OA”的人员</li>
+</ul>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在制造业中，很多业务最初仍依赖：</p>
+<ul>
+<li>Excel</li>
+<li>纸质签核</li>
+<li>邮件审批</li>
+<li>微信沟通</li>
+<li>人工统计台账</li>
+</ul>
+<p>随着业务规模扩大，会逐渐出现：</p>
+<ul>
+<li>流程无法追踪</li>
+<li>审批节点混乱</li>
+<li>数据重复填写</li>
+<li>台账统计困难</li>
+<li>权限不可控</li>
+<li>历史记录无法追溯</li>
+</ul>
+<p>因此，公司开始逐步推动 OA 流程化。</p>
+<p>最开始，我只是作为流程使用者：</p>
+<ul>
+<li>提交申请</li>
+<li>查看审批</li>
+<li>上传附件</li>
+</ul>
+<p>后来逐步开始：</p>
+<ul>
+<li>修改流程</li>
+<li>配置节点</li>
+<li>调整审批逻辑</li>
+<li>建立新流程</li>
+<li>设计复杂条件分支</li>
+<li>建立台账</li>
+<li>做数据映射</li>
+</ul>
+<p>最终逐渐形成了一整套完整的 OA 开发与维护经验。</p>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><h3 id="痛点"><a href="#痛点" class="headerlink" title="痛点"></a>痛点</h3><h3 id="1-流程需求变化非常频繁"><a href="#1-流程需求变化非常频繁" class="headerlink" title="1. 流程需求变化非常频繁"></a>1. 流程需求变化非常频繁</h3><p>制造业业务经常会出现：</p>
+<ul>
+<li>新增审批节点</li>
+<li>修改审批路径</li>
+<li>增加条件判断</li>
+<li>新增字段</li>
+<li>新增会签</li>
+<li>增加超时提醒</li>
+</ul>
+<p>如果流程设计不规范，后期维护会越来越困难。</p>
+<h3 id="2-流程图复杂度越来越高"><a href="#2-流程图复杂度越来越高" class="headerlink" title="2. 流程图复杂度越来越高"></a>2. 流程图复杂度越来越高</h3><p>简单流程：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">申请人 → 部门主管 → 完成</span><br></pre></td></tr></table></figure>
+
+<p>复杂流程：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">申请人</span><br><span class="line"> → 部门部长</span><br><span class="line"> → 厂处长</span><br><span class="line"> → 副总</span><br><span class="line"> → 总经理</span><br><span class="line"> → 董事长</span><br><span class="line"> → 归档</span><br></pre></td></tr></table></figure>
+
+<p>同时还需要：</p>
+<ul>
+<li>会签</li>
+<li>条件分支</li>
+<li>抄送</li>
+<li>超时提醒</li>
+<li>转办</li>
+<li>并行审批</li>
+</ul>
+<p>后期很容易出现逻辑混乱。</p>
+<h3 id="3-表单与业务强关联"><a href="#3-表单与业务强关联" class="headerlink" title="3. 表单与业务强关联"></a>3. 表单与业务强关联</h3><p>不同业务：</p>
+<ul>
+<li>出差申请</li>
+<li>测试申请</li>
+<li>生产支援</li>
+<li>停机检修</li>
+<li>CCB变更</li>
+<li>OCAP台账</li>
+</ul>
+<p>字段都完全不同。</p>
+<p>不仅需要：</p>
+<ul>
+<li>字段联动</li>
+<li>自动填充</li>
+<li>条件必填</li>
+<li>明细表</li>
+</ul>
+<p>还需要动态控制：</p>
+<ul>
+<li>只读</li>
+<li>编辑</li>
+<li>必填</li>
+</ul>
+<h3 id="4-流程完成后缺少数据沉淀"><a href="#4-流程完成后缺少数据沉淀" class="headerlink" title="4. 流程完成后缺少数据沉淀"></a>4. 流程完成后缺少数据沉淀</h3><p>很多流程审批完成后：</p>
+<ul>
+<li>查不到历史</li>
+<li>无法统计</li>
+<li>无法导出</li>
+<li>无法形成分析报表</li>
+</ul>
+<p>因此需要：</p>
+<ul>
+<li>台账</li>
+<li>建模引擎</li>
+<li>数据同步</li>
+<li>查询模块</li>
+</ul>
+<h2 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h2><h2 id="什么是-OA-流程"><a href="#什么是-OA-流程" class="headerlink" title="什么是 OA 流程"></a>什么是 OA 流程</h2><p>OA 流程本质上是：</p>
+<blockquote>
+<p>“企业内部业务审批与协同流转系统”</p>
+</blockquote>
+<p>例如：</p>
+<ul>
+<li>请假</li>
+<li>出差</li>
+<li>测试申请</li>
+<li>采购</li>
+<li>工单</li>
+<li>设备检修</li>
+</ul>
+<p>本质都是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">发起 → 审批 → 流转 → 完成</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="OA-流程的核心组成"><a href="#OA-流程的核心组成" class="headerlink" title="OA 流程的核心组成"></a>OA 流程的核心组成</h2><h3 id="1-表单"><a href="#1-表单" class="headerlink" title="1. 表单"></a>1. 表单</h3><p>用于承载业务数据。</p>
+<p>例如：</p>
+<p>| 字段     | 类型         |<br>| – |  |<br>| 申请人   | 浏览按钮     |<br>| 申请时间 | 日期         |<br>| 料号     | 自定义浏览框 |<br>| 测试目的 | 多行文本     |</p>
+<h3 id="2-流程图"><a href="#2-流程图" class="headerlink" title="2. 流程图"></a>2. 流程图</h3><p>用于定义：</p>
+<ul>
+<li>谁审批</li>
+<li>怎么流转</li>
+<li>哪些条件走哪条线</li>
+</ul>
+<p>类似：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">申请人</span><br><span class="line"> ↓</span><br><span class="line">部长</span><br><span class="line"> ↓</span><br><span class="line">处长</span><br><span class="line"> ↓</span><br><span class="line">归档</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-节点"><a href="#3-节点" class="headerlink" title="3. 节点"></a>3. 节点</h3><p>节点就是流程中的“步骤”。</p>
+<p>每个节点可以配置：</p>
+<ul>
+<li>操作者</li>
+<li>表单权限</li>
+<li>会签</li>
+<li>转办</li>
+<li>JS逻辑</li>
+<li>附加操作</li>
+</ul>
+<h3 id="4-明细表"><a href="#4-明细表" class="headerlink" title="4. 明细表"></a>4. 明细表</h3><p>明细表类似：</p>
+<blockquote>
+<p>“表中套表”</p>
+</blockquote>
+<p>适用于：</p>
+<ul>
+<li>多物料</li>
+<li>多人员</li>
+<li>多时间段</li>
+</ul>
+<p>例如：</p>
+<table>
+<thead>
+<tr>
+<th>人员</th>
+<th>开始时间</th>
+<th>结束时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>张三</td>
+<td>08:00</td>
+<td>12:00</td>
+</tr>
+<tr>
+<td>李四</td>
+<td>13:00</td>
+<td>18:00</td>
+</tr>
+</tbody></table>
+<p>数据库中通常会生成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">主表_detail_1</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="5-台账"><a href="#5-台账" class="headerlink" title="5. 台账"></a>5. 台账</h3><p>很多人一开始会混淆：</p>
+<ul>
+<li>流程</li>
+<li>台账</li>
+</ul>
+<p>其实两者区别很大。</p>
+<h2 id="什么是台账"><a href="#什么是台账" class="headerlink" title="什么是台账"></a>什么是台账</h2><p>流程解决的是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">审批</span><br></pre></td></tr></table></figure>
+
+<p>台账解决的是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">数据沉淀与查询</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<h3 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Txx测试申请</span><br></pre></td></tr></table></figure>
+
+<p>用于审批。</p>
+<h3 id="台账"><a href="#台账" class="headerlink" title="台账"></a>台账</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Txx测试单台账</span><br></pre></td></tr></table></figure>
+
+<p>用于：</p>
+<ul>
+<li>查询历史</li>
+<li>导出Excel</li>
+<li>状态跟踪</li>
+<li>数据分析</li>
+<li>条件筛选</li>
+</ul>
+<h2 id="OA-E9-技术架构理解"><a href="#OA-E9-技术架构理解" class="headerlink" title="OA E9 技术架构理解"></a>OA E9 技术架构理解</h2><p>E9 采用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">前后端分离</span><br></pre></td></tr></table></figure>
+
+<p>前端：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">React + Mobx + WeaCom</span><br></pre></td></tr></table></figure>
+
+<p>后端：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">RESTFUL + IOC + AOP + Command</span><br></pre></td></tr></table></figure>
+
+<p>其核心思想：</p>
+<ul>
+<li>命令模式</li>
+<li>职责链模式</li>
+<li>服务解耦</li>
+</ul>
+<p>因此：</p>
+<ul>
+<li>节点可扩展</li>
+<li>流程可插拔</li>
+<li>支持拦截器</li>
+<li>支持 AOP</li>
+</ul>
+<p>这也是后续能够支持复杂业务的重要原因。</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><h2 id="OA-流程学习路线"><a href="#OA-流程学习路线" class="headerlink" title="OA 流程学习路线"></a>OA 流程学习路线</h2><p>我将学习过程大致拆成了几个阶段：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第一阶段</td>
+<td>认识流程</td>
+</tr>
+<tr>
+<td>第二阶段</td>
+<td>建立简单流程</td>
+</tr>
+<tr>
+<td>第三阶段</td>
+<td>节点与权限</td>
+</tr>
+<tr>
+<td>第四阶段</td>
+<td>HTML 与 JS</td>
+</tr>
+<tr>
+<td>第五阶段</td>
+<td>复杂条件流</td>
+</tr>
+<tr>
+<td>第六阶段</td>
+<td>会签与矩阵</td>
+</tr>
+<tr>
+<td>第七阶段</td>
+<td>建模引擎与台账</td>
+</tr>
+</tbody></table>
+<h2 id="详细教程"><a href="#详细教程" class="headerlink" title="详细教程"></a>详细教程</h2><h2 id="一、建立第一个流程"><a href="#一、建立第一个流程" class="headerlink" title="一、建立第一个流程"></a>一、建立第一个流程</h2><h3 id="1-新建表单"><a href="#1-新建表单" class="headerlink" title="1. 新建表单"></a>1. 新建表单</h3><p>先建立基础字段。</p>
+<p>通常建议先建立“四要素”：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>流程编号</td>
+<td>唯一编号</td>
+</tr>
+<tr>
+<td>申请人</td>
+<td>当前用户</td>
+</tr>
+<tr>
+<td>申请部门</td>
+<td>所属部门</td>
+</tr>
+<tr>
+<td>申请时间</td>
+<td>日期</td>
+</tr>
+</tbody></table>
+<h3 id="2-配置流程图"><a href="#2-配置流程图" class="headerlink" title="2. 配置流程图"></a>2. 配置流程图</h3><p>建议：</p>
+<blockquote>
+<p>先用 drawio 画流程图，再进入 OA 配置。</p>
+</blockquote>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">申请人</span><br><span class="line"> ↓</span><br><span class="line">部长</span><br><span class="line"> ↓</span><br><span class="line">处长</span><br><span class="line"> ↓</span><br><span class="line">归档</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-节点配置"><a href="#3-节点配置" class="headerlink" title="3. 节点配置"></a>3. 节点配置</h3><p>节点最核心。</p>
+<p>每个节点都需要配置：</p>
+<ul>
+<li>操作者</li>
+<li>表单权限</li>
+<li>操作菜单</li>
+<li>出口条件</li>
+</ul>
+<h2 id="二、理解会签"><a href="#二、理解会签" class="headerlink" title="二、理解会签"></a>二、理解会签</h2><h3 id="会签"><a href="#会签" class="headerlink" title="会签"></a>会签</h3><p>多个审批人：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">必须全部同意</span><br></pre></td></tr></table></figure>
+
+<p>流程才继续。</p>
+<h3 id="非会签"><a href="#非会签" class="headerlink" title="非会签"></a>非会签</h3><p>多个审批人：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">只需要一个人同意</span><br></pre></td></tr></table></figure>
+
+<p>即可继续。</p>
+<h3 id="并行会签"><a href="#并行会签" class="headerlink" title="并行会签"></a>并行会签</h3><p>多个节点同时进行。</p>
+<p>适合：</p>
+<ul>
+<li>多部门联合审批</li>
+</ul>
+<h2 id="三、HTML-表单开发"><a href="#三、HTML-表单开发" class="headerlink" title="三、HTML 表单开发"></a>三、HTML 表单开发</h2><p>流程真正复杂的地方：</p>
+<blockquote>
+<p>在 HTML 表单。</p>
+</blockquote>
+<h2 id="自动生成标题"><a href="#自动生成标题" class="headerlink" title="自动生成标题"></a>自动生成标题</h2><p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&lt;script&gt;</span><br><span class="line">WfForm.bindFieldChangeEvent(&quot;field17840&quot;, function(obj,id,value)&#123;</span><br><span class="line">  changetitle();</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line">function changetitle()&#123;</span><br><span class="line">  var fieldValue = WfForm.getFieldValue(&quot;field17840&quot;);</span><br><span class="line"></span><br><span class="line">  if(fieldValue == &quot;&quot;)&#123;</span><br><span class="line">    WfForm.changeFieldValue(&quot;field-1&quot;, &#123;</span><br><span class="line">      value:&quot;Txx测试申请单&quot;</span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;else&#123;</span><br><span class="line">    WfForm.changeFieldValue(&quot;field-1&quot;, &#123;</span><br><span class="line">      value: fieldValue + &quot;（料号）转Txx测试申请单&quot;</span><br><span class="line">    &#125;);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+
+<p>实现效果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">输入料号 → 自动拼接标题</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="四、动态控制字段属性"><a href="#四、动态控制字段属性" class="headerlink" title="四、动态控制字段属性"></a>四、动态控制字段属性</h2><p>流程中经常需要：</p>
+<ul>
+<li>必填</li>
+<li>只读</li>
+<li>编辑</li>
+</ul>
+<p>动态切换。</p>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">WfForm.changeFieldAttr(&quot;field17958&quot;, 3);</span><br></pre></td></tr></table></figure>
+
+<p>含义：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>只读</td>
+</tr>
+<tr>
+<td>2</td>
+<td>编辑</td>
+</tr>
+<tr>
+<td>3</td>
+<td>必填</td>
+</tr>
+</tbody></table>
+<h2 id="五、字段联动"><a href="#五、字段联动" class="headerlink" title="五、字段联动"></a>五、字段联动</h2><p>典型场景：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">选择人 → 自动带出部门</span><br></pre></td></tr></table></figure>
+
+<p>或者：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">选择部门 → 自动带出负责人</span><br></pre></td></tr></table></figure>
+
+<p>这类功能在 OA 中极其常见。</p>
+<h2 id="六、复杂流程设计"><a href="#六、复杂流程设计" class="headerlink" title="六、复杂流程设计"></a>六、复杂流程设计</h2><p>真正困难的不是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">建立流程</span><br></pre></td></tr></table></figure>
+
+<p>而是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">设计复杂条件</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<h3 id="出差申请流程"><a href="#出差申请流程" class="headerlink" title="出差申请流程"></a>出差申请流程</h3><p>需要根据：</p>
+<ul>
+<li>天数</li>
+<li>金额</li>
+<li>职级</li>
+<li>公出类型</li>
+</ul>
+<p>动态走不同审批路径。</p>
+<h3 id="条件示例"><a href="#条件示例" class="headerlink" title="条件示例"></a>条件示例</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">出差天数 &gt; 2</span><br><span class="line">→ 总经理审批</span><br><span class="line">费用 &gt;= 1500</span><br><span class="line">→ 财务抄送</span><br><span class="line">安全级别 &gt;= 80</span><br><span class="line">→ 董事长审批</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="七、超时提醒"><a href="#七、超时提醒" class="headerlink" title="七、超时提醒"></a>七、超时提醒</h2><p>急件流程经常需要：</p>
+<ul>
+<li>超时前提醒</li>
+<li>超时提醒</li>
+<li>重复提醒</li>
+</ul>
+<p>例如：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>超时前提醒</td>
+<td>15min</td>
+</tr>
+<tr>
+<td>超时提醒</td>
+<td>0</td>
+</tr>
+<tr>
+<td>重复提醒</td>
+<td>15min</td>
+</tr>
+</tbody></table>
+<h2 id="八、明细表实践"><a href="#八、明细表实践" class="headerlink" title="八、明细表实践"></a>八、明细表实践</h2><p>明细表非常适合：</p>
+<ul>
+<li>多人员</li>
+<li>多时间</li>
+<li>多物料</li>
+</ul>
+<p>例如：</p>
+<h3 id="生产支援流程"><a href="#生产支援流程" class="headerlink" title="生产支援流程"></a>生产支援流程</h3><p>主表：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">支援部门</span><br><span class="line">支援人数</span><br><span class="line">支援时间</span><br></pre></td></tr></table></figure>
+
+<p>明细表：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">支援人员</span><br><span class="line">支援起止时间</span><br></pre></td></tr></table></figure>
+
+<p>实现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">一个流程</span><br><span class="line">支持多个支援人员</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="九、建模引擎与台账"><a href="#九、建模引擎与台账" class="headerlink" title="九、建模引擎与台账"></a>九、建模引擎与台账</h2><p>这是 OA 进阶核心。</p>
+<h2 id="为什么需要建模引擎"><a href="#为什么需要建模引擎" class="headerlink" title="为什么需要建模引擎"></a>为什么需要建模引擎</h2><p>流程解决：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">审批</span><br></pre></td></tr></table></figure>
+
+<p>建模解决：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">数据管理</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">OCAP台账</span><br><span class="line">Txx测试台账</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="台账的核心能力"><a href="#台账的核心能力" class="headerlink" title="台账的核心能力"></a>台账的核心能力</h2><h3 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h3><p>支持：</p>
+<ul>
+<li>条件搜索</li>
+<li>导出</li>
+<li>筛选</li>
+</ul>
+<h3 id="数据同步"><a href="#数据同步" class="headerlink" title="数据同步"></a>数据同步</h3><p>通过：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">流程转数据</span><br></pre></td></tr></table></figure>
+
+<p>实现：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">流程 → 台账</span><br></pre></td></tr></table></figure>
+
+<p>自动同步。</p>
+<h2 id="台账建设步骤"><a href="#台账建设步骤" class="headerlink" title="台账建设步骤"></a>台账建设步骤</h2><h3 id="1-建应用"><a href="#1-建应用" class="headerlink" title="1. 建应用"></a>1. 建应用</h3><p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">品质管理</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2-建模块"><a href="#2-建模块" class="headerlink" title="2. 建模块"></a>2. 建模块</h3><p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">OCAP台账</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-建表单"><a href="#3-建表单" class="headerlink" title="3. 建表单"></a>3. 建表单</h3><p>建立：</p>
+<ul>
+<li>主表</li>
+<li>明细表</li>
+</ul>
+<h3 id="4-建查询"><a href="#4-建查询" class="headerlink" title="4. 建查询"></a>4. 建查询</h3><p>配置：</p>
+<ul>
+<li>搜索条件</li>
+<li>导出</li>
+<li>权限</li>
+</ul>
+<h3 id="5-配置流程转数据"><a href="#5-配置流程转数据" class="headerlink" title="5. 配置流程转数据"></a>5. 配置流程转数据</h3><p>核心功能：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">流程审批完成</span><br><span class="line">→ 自动同步到台账</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="十、实际项目经验总结"><a href="#十、实际项目经验总结" class="headerlink" title="十、实际项目经验总结"></a>十、实际项目经验总结</h2><p>在实际开发中，我逐渐总结出一套比较稳定的方法：</p>
+<h2 id="1-先梳理业务"><a href="#1-先梳理业务" class="headerlink" title="1. 先梳理业务"></a>1. 先梳理业务</h2><p>不要直接开发。</p>
+<p>先整理：</p>
+<ul>
+<li>谁发起</li>
+<li>谁审批</li>
+<li>哪些条件</li>
+<li>哪些字段</li>
+</ul>
+<h2 id="2-先画流程图"><a href="#2-先画流程图" class="headerlink" title="2. 先画流程图"></a>2. 先画流程图</h2><p>推荐：</p>
+<ul>
+<li>drawio</li>
+<li>ProcessOn</li>
+</ul>
+<p>避免：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">边开发边改</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="3-先建立字段"><a href="#3-先建立字段" class="headerlink" title="3. 先建立字段"></a>3. 先建立字段</h2><p>字段是流程基础。</p>
+<p>建议：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">先主表</span><br><span class="line">再明细表</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="4-HTML-模板先统一"><a href="#4-HTML-模板先统一" class="headerlink" title="4. HTML 模板先统一"></a>4. HTML 模板先统一</h2><p>建议：</p>
+<ul>
+<li>先初始化统一模板</li>
+<li>再局部调整</li>
+</ul>
+<p>否则后期维护非常困难。</p>
+<h2 id="5-流程条件不要写“默认”"><a href="#5-流程条件不要写“默认”" class="headerlink" title="5. 流程条件不要写“默认”"></a>5. 流程条件不要写“默认”</h2><p>复杂流程：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">每条线都写条件</span><br></pre></td></tr></table></figure>
+
+<p>避免：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">误流转</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="实施成果-收益"><a href="#实施成果-收益" class="headerlink" title="实施成果 &amp; 收益"></a>实施成果 &amp; 收益</h2><p>经过持续实践后，目前已经能够：</p>
+<ul>
+<li>独立建立完整 OA 流程</li>
+<li>配置复杂审批逻辑</li>
+<li>完成动态 HTML 表单</li>
+<li>实现字段联动</li>
+<li>实现会签与矩阵审批</li>
+<li>建立台账系统</li>
+<li>完成流程与台账同步</li>
+<li>支持复杂制造业业务场景</li>
+</ul>
+<p>同时也逐渐形成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">需求分析</span><br><span class="line">→ 流程设计</span><br><span class="line">→ 表单设计</span><br><span class="line">→ 节点设计</span><br><span class="line">→ 条件设计</span><br><span class="line">→ 台账设计</span><br><span class="line">→ 测试上线</span><br></pre></td></tr></table></figure>
+
+<p>的一整套方法论。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>OA 真正难的不是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">“会创建流程”</span><br></pre></td></tr></table></figure>
+
+<p>而是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">“理解业务”</span><br></pre></td></tr></table></figure>
+
+<p>很多时候：</p>
+<ul>
+<li>技术只是实现手段</li>
+<li>流程设计能力</li>
+<li>业务抽象能力</li>
+<li>条件分析能力</li>
+</ul>
+<p>才是真正的核心。</p>
+<p>尤其在制造业中：</p>
+<ul>
+<li>MES</li>
+<li>ERP</li>
+<li>OA</li>
+<li>台账</li>
+<li>数据流转</li>
+</ul>
+<p>往往是互相关联的。</p>
+<p>当流程逐渐标准化后，很多原本依赖：</p>
+<ul>
+<li>Excel</li>
+<li>纸质</li>
+<li>人工统计</li>
+</ul>
+<p>的工作，都会逐渐变成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">系统自动流转</span><br><span class="line">系统自动沉淀</span><br><span class="line">系统自动统计</span><br></pre></td></tr></table></figure>
+
+<p>这也是企业数字化建设真正的价值所在。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/OA/" rel="tag"># OA</a>
+              <a href="/tags/%E6%B5%81%E7%A8%8B/" rel="tag"># 流程</a>
+              <a href="/tags/%E5%8F%B0%E8%B4%A6/" rel="tag"># 台账</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/03-%E5%B7%A5%E5%85%B7/02-Nexus/Nexus%E7%A7%81%E6%9C%8D%E4%BB%93%E5%BA%93%E6%90%AD%E5%BB%BA%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%A7%A3%E5%86%B3Maven%E3%80%81NPM%E4%BE%9D%E8%B5%96%E4%B8%A2%E5%A4%B1%E4%B8%8E%E7%A6%BB%E7%BA%BF%E9%83%A8%E7%BD%B2%E9%97%AE%E9%A2%98/" rel="prev" title="Nexus私服仓库搭建实践：解决Maven、NPM依赖丢失与离线部署问题">
+                  <i class="fa fa-angle-left"></i> Nexus私服仓库搭建实践：解决Maven、NPM依赖丢失与离线部署问题
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/04-IP/%E5%9F%BA%E4%BA%8EMES%E7%9A%84%E9%87%8F%E6%B5%8B%E6%95%B0%E6%8D%AE%E8%87%AA%E5%8A%A8%E5%8C%96%E4%B8%8A%E4%BC%A0%E5%B9%B3%E5%8F%B0%E5%AE%9E%E8%B7%B5%EF%BC%9A%E4%BB%8E%E4%BA%BA%E5%B7%A5%E5%BD%95%E5%85%A5%E5%88%B0%E8%AE%BE%E5%A4%87%E6%95%B0%E6%8D%AE%E8%87%AA%E5%8A%A8%E5%85%A5%E7%AB%99/" rel="next" title="基于MES的量测数据自动化上传平台实践：从人工录入到设备数据自动入站">
+                  基于MES的量测数据自动化上传平台实践：从人工录入到设备数据自动入站 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">27k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:38</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

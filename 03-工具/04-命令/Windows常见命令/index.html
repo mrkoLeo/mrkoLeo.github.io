@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="本文整理了 Windows CMD 与 PowerShell 中常用且高频的命令，包括文件管理、进程控制、网络诊断、系统运维、磁盘管理、权限控制以及开发调试等场景。   同时对 PowerShell 常见 Alias（命令别名）进行了归纳，并补充了端口占用查询、杀进程、WiFi 密码查看、批量执行命令等实用组合示例，适合作为 Windows 开发、运维与日常使用过程中的命令速查手册。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Windows常用命令">
+<meta property="og:url" content="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%B8%B8%E8%A7%81%E5%91%BD%E4%BB%A4/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="本文整理了 Windows CMD 与 PowerShell 中常用且高频的命令，包括文件管理、进程控制、网络诊断、系统运维、磁盘管理、权限控制以及开发调试等场景。   同时对 PowerShell 常见 Alias（命令别名）进行了归纳，并补充了端口占用查询、杀进程、WiFi 密码查看、批量执行命令等实用组合示例，适合作为 Windows 开发、运维与日常使用过程中的命令速查手册。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-09-02T00:38:43.000Z">
+<meta property="article:modified_time" content="2026-05-25T03:39:59.539Z">
+<meta property="article:author" content="mrko">
+<meta property="article:tag" content="Windows">
+<meta property="article:tag" content="命令">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%B8%B8%E8%A7%81%E5%91%BD%E4%BB%A4/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%B8%B8%E8%A7%81%E5%91%BD%E4%BB%A4/","path":"03-工具/04-命令/Windows常见命令/","title":"Windows常用命令"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Windows常用命令 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Windows-CMD-%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E5%A4%A7%E5%85%A8"><span class="nav-number">1.</span> <span class="nav-text">Windows CMD 常用命令大全</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%80%E5%8F%91%E6%9C%80%E5%B8%B8%E7%94%A8-CMD-%E5%91%BD%E4%BB%A4"><span class="nav-number">2.</span> <span class="nav-text">开发最常用 CMD 命令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%AB%98%E9%A2%91%E7%BB%84%E5%90%88"><span class="nav-number">3.</span> <span class="nav-text">高频组合</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%A5%E7%AB%AF%E5%8F%A3%E5%8D%A0%E7%94%A8"><span class="nav-number">3.1.</span> <span class="nav-text">查端口占用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9D%80%E7%AB%AF%E5%8F%A3%E8%BF%9B%E7%A8%8B"><span class="nav-number">3.2.</span> <span class="nav-text">杀端口进程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%BA%E5%88%B6%E5%88%A0%E9%99%A4%E7%9B%AE%E5%BD%95"><span class="nav-number">3.3.</span> <span class="nav-text">强制删除目录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B-WiFi-%E5%AF%86%E7%A0%81"><span class="nav-number">3.4.</span> <span class="nav-text">查看 WiFi 密码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%A1%BA%E5%BA%8F%E6%89%A7%E8%A1%8C%E5%A4%9A%E4%B8%AA%E5%91%BD%E4%BB%A4"><span class="nav-number">3.5.</span> <span class="nav-text">顺序执行多个命令</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#PowerShell-%E5%BF%AB%E6%8D%B7%E5%91%BD%E4%BB%A4%EF%BC%88Alias%EF%BC%89%E5%A4%A7%E5%85%A8"><span class="nav-number">4.</span> <span class="nav-text">PowerShell 快捷命令（Alias）大全</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%80%E5%8F%91%E6%9C%80%E5%B8%B8%E7%94%A8-PowerShell-%E5%91%BD%E4%BB%A4"><span class="nav-number">5.</span> <span class="nav-text">开发最常用 PowerShell 命令</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%B8%B8%E8%A7%81%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Windows常用命令 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Windows常用命令
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-09-02 08:38:43" itemprop="dateCreated datePublished" datetime="2025-09-02T08:38:43+08:00">2025-09-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/" itemprop="url" rel="index"><span itemprop="name">03-工具</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">04-命令</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.9k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>7 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>本文整理了 Windows CMD 与 PowerShell 中常用且高频的命令，包括文件管理、进程控制、网络诊断、系统运维、磁盘管理、权限控制以及开发调试等场景。</p>
+</blockquote>
+<blockquote>
+<p>同时对 PowerShell 常见 Alias（命令别名）进行了归纳，并补充了端口占用查询、杀进程、WiFi 密码查看、批量执行命令等实用组合示例，适合作为 Windows 开发、运维与日常使用过程中的命令速查手册。</p>
+</blockquote>
+<span id="more"></span>
+
+<h1 id="Windows-CMD-常用命令大全"><a href="#Windows-CMD-常用命令大全" class="headerlink" title="Windows CMD 常用命令大全"></a>Windows CMD 常用命令大全</h1><table>
+<thead>
+<tr>
+<th>快捷命令</th>
+<th>完整命令</th>
+<th>英文含义</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cd</code></td>
+<td><code>Change Directory</code></td>
+<td>Change Directory</td>
+<td>切换目录</td>
+</tr>
+<tr>
+<td><code>chdir</code></td>
+<td><code>Change Directory</code></td>
+<td>Change Directory</td>
+<td>切换目录</td>
+</tr>
+<tr>
+<td><code>dir</code></td>
+<td><code>Directory</code></td>
+<td>Directory</td>
+<td>查看目录</td>
+</tr>
+<tr>
+<td><code>tree</code></td>
+<td><code>Tree</code></td>
+<td>Directory Tree</td>
+<td>树状显示目录</td>
+</tr>
+<tr>
+<td><code>md</code></td>
+<td><code>Make Directory</code></td>
+<td>Make Directory</td>
+<td>创建目录</td>
+</tr>
+<tr>
+<td><code>mkdir</code></td>
+<td><code>Make Directory</code></td>
+<td>Make Directory</td>
+<td>创建目录</td>
+</tr>
+<tr>
+<td><code>rd</code></td>
+<td><code>Remove Directory</code></td>
+<td>Remove Directory</td>
+<td>删除目录</td>
+</tr>
+<tr>
+<td><code>rmdir</code></td>
+<td><code>Remove Directory</code></td>
+<td>Remove Directory</td>
+<td>删除目录</td>
+</tr>
+<tr>
+<td><code>copy</code></td>
+<td><code>Copy</code></td>
+<td>Copy File</td>
+<td>复制文件</td>
+</tr>
+<tr>
+<td><code>xcopy</code></td>
+<td><code>Extended Copy</code></td>
+<td>Extended Copy</td>
+<td>复制目录</td>
+</tr>
+<tr>
+<td><code>robocopy</code></td>
+<td><code>Robust File Copy</code></td>
+<td>Robust Copy</td>
+<td>高级复制</td>
+</tr>
+<tr>
+<td><code>move</code></td>
+<td><code>Move</code></td>
+<td>Move File</td>
+<td>移动文件</td>
+</tr>
+<tr>
+<td><code>ren</code></td>
+<td><code>Rename</code></td>
+<td>Rename File</td>
+<td>重命名</td>
+</tr>
+<tr>
+<td><code>rename</code></td>
+<td><code>Rename</code></td>
+<td>Rename File</td>
+<td>重命名</td>
+</tr>
+<tr>
+<td><code>del</code></td>
+<td><code>Delete</code></td>
+<td>Delete File</td>
+<td>删除文件</td>
+</tr>
+<tr>
+<td><code>erase</code></td>
+<td><code>Erase</code></td>
+<td>Erase File</td>
+<td>删除文件</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>Type</code></td>
+<td>Show Content</td>
+<td>查看文件内容</td>
+</tr>
+<tr>
+<td><code>more</code></td>
+<td><code>More</code></td>
+<td>More Content</td>
+<td>分页查看</td>
+</tr>
+<tr>
+<td><code>cls</code></td>
+<td><code>Clear Screen</code></td>
+<td>Clear Screen</td>
+<td>清屏</td>
+</tr>
+<tr>
+<td><code>echo</code></td>
+<td><code>Echo</code></td>
+<td>Echo Output</td>
+<td>输出内容</td>
+</tr>
+<tr>
+<td><code>set</code></td>
+<td><code>Set</code></td>
+<td>Set Variable</td>
+<td>设置环境变量</td>
+</tr>
+<tr>
+<td><code>path</code></td>
+<td><code>Path</code></td>
+<td>Executable Path</td>
+<td>查看PATH</td>
+</tr>
+<tr>
+<td><code>pause</code></td>
+<td><code>Pause</code></td>
+<td>Pause Program</td>
+<td>暂停</td>
+</tr>
+<tr>
+<td><code>exit</code></td>
+<td><code>Exit</code></td>
+<td>Exit Shell</td>
+<td>退出</td>
+</tr>
+<tr>
+<td><code>help</code></td>
+<td><code>Help</code></td>
+<td>Help Command</td>
+<td>查看帮助</td>
+</tr>
+<tr>
+<td><code>where</code></td>
+<td><code>Where</code></td>
+<td>Locate File</td>
+<td>查找命令路径</td>
+</tr>
+<tr>
+<td><code>find</code></td>
+<td><code>Find</code></td>
+<td>Find Text</td>
+<td>查找文本</td>
+</tr>
+<tr>
+<td><code>findstr</code></td>
+<td><code>Find String</code></td>
+<td>Find String</td>
+<td>文本搜索</td>
+</tr>
+<tr>
+<td><code>fc</code></td>
+<td><code>File Compare</code></td>
+<td>File Compare</td>
+<td>比较文件</td>
+</tr>
+<tr>
+<td><code>attrib</code></td>
+<td><code>Attribute</code></td>
+<td>File Attribute</td>
+<td>文件属性</td>
+</tr>
+<tr>
+<td><code>assoc</code></td>
+<td><code>Association</code></td>
+<td>File Association</td>
+<td>文件关联</td>
+</tr>
+<tr>
+<td><code>ftype</code></td>
+<td><code>File Type</code></td>
+<td>File Type</td>
+<td>文件类型</td>
+</tr>
+<tr>
+<td><code>comp</code></td>
+<td><code>Compare</code></td>
+<td>Compare Files</td>
+<td>比较文件</td>
+</tr>
+<tr>
+<td><code>sort</code></td>
+<td><code>Sort</code></td>
+<td>Sort Text</td>
+<td>排序</td>
+</tr>
+<tr>
+<td><code>tasklist</code></td>
+<td><code>Task List</code></td>
+<td>Task List</td>
+<td>查看进程</td>
+</tr>
+<tr>
+<td><code>taskkill</code></td>
+<td><code>Task Kill</code></td>
+<td>Kill Task</td>
+<td>结束进程</td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td><code>Start</code></td>
+<td>Start Program</td>
+<td>启动程序</td>
+</tr>
+<tr>
+<td><code>shutdown</code></td>
+<td><code>Shutdown</code></td>
+<td>Shutdown System</td>
+<td>关机&#x2F;重启</td>
+</tr>
+<tr>
+<td><code>systeminfo</code></td>
+<td><code>System Information</code></td>
+<td>System Info</td>
+<td>系统信息</td>
+</tr>
+<tr>
+<td><code>hostname</code></td>
+<td><code>Host Name</code></td>
+<td>Host Name</td>
+<td>主机名</td>
+</tr>
+<tr>
+<td><code>whoami</code></td>
+<td><code>Who Am I</code></td>
+<td>Current User</td>
+<td>当前用户</td>
+</tr>
+<tr>
+<td><code>ver</code></td>
+<td><code>Version</code></td>
+<td>System Version</td>
+<td>Windows版本</td>
+</tr>
+<tr>
+<td><code>winver</code></td>
+<td><code>Windows Version</code></td>
+<td>Windows Version</td>
+<td>查看版本</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td><code>Date</code></td>
+<td>System Date</td>
+<td>日期</td>
+</tr>
+<tr>
+<td><code>time</code></td>
+<td><code>Time</code></td>
+<td>System Time</td>
+<td>时间</td>
+</tr>
+<tr>
+<td><code>tzutil</code></td>
+<td><code>Time Zone Utility</code></td>
+<td>Time Zone</td>
+<td>时区管理</td>
+</tr>
+<tr>
+<td><code>calc</code></td>
+<td><code>Calculator</code></td>
+<td>Calculator</td>
+<td>打开计算器</td>
+</tr>
+<tr>
+<td><code>notepad</code></td>
+<td><code>Notepad</code></td>
+<td>Text Editor</td>
+<td>打开记事本</td>
+</tr>
+<tr>
+<td><code>explorer</code></td>
+<td><code>Explorer</code></td>
+<td>File Explorer</td>
+<td>打开资源管理器</td>
+</tr>
+<tr>
+<td><code>control</code></td>
+<td><code>Control Panel</code></td>
+<td>Control Panel</td>
+<td>控制面板</td>
+</tr>
+<tr>
+<td><code>regedit</code></td>
+<td><code>Registry Editor</code></td>
+<td>Registry Editor</td>
+<td>注册表</td>
+</tr>
+<tr>
+<td><code>msconfig</code></td>
+<td><code>Microsoft Config</code></td>
+<td>System Config</td>
+<td>系统配置</td>
+</tr>
+<tr>
+<td><code>services.msc</code></td>
+<td><code>Services</code></td>
+<td>Service Manager</td>
+<td>服务管理</td>
+</tr>
+<tr>
+<td><code>devmgmt.msc</code></td>
+<td><code>Device Management</code></td>
+<td>Device Manager</td>
+<td>设备管理</td>
+</tr>
+<tr>
+<td><code>diskmgmt.msc</code></td>
+<td><code>Disk Management</code></td>
+<td>Disk Manager</td>
+<td>磁盘管理</td>
+</tr>
+<tr>
+<td><code>gpedit.msc</code></td>
+<td><code>Group Policy Editor</code></td>
+<td>Group Policy</td>
+<td>组策略</td>
+</tr>
+<tr>
+<td><code>eventvwr</code></td>
+<td><code>Event Viewer</code></td>
+<td>Event Viewer</td>
+<td>事件查看器</td>
+</tr>
+<tr>
+<td><code>cmd</code></td>
+<td><code>Command Prompt</code></td>
+<td>Command Prompt</td>
+<td>CMD终端</td>
+</tr>
+<tr>
+<td><code>powershell</code></td>
+<td><code>PowerShell</code></td>
+<td>PowerShell Shell</td>
+<td>PowerShell</td>
+</tr>
+<tr>
+<td><code>ipconfig</code></td>
+<td><code>IP Configuration</code></td>
+<td>IP Config</td>
+<td>查看IP</td>
+</tr>
+<tr>
+<td><code>ping</code></td>
+<td><code>Packet Internet Groper</code></td>
+<td>Ping Test</td>
+<td>网络测试</td>
+</tr>
+<tr>
+<td><code>tracert</code></td>
+<td><code>Trace Route</code></td>
+<td>Route Trace</td>
+<td>路由跟踪</td>
+</tr>
+<tr>
+<td><code>pathping</code></td>
+<td><code>Path Ping</code></td>
+<td>Path Analysis</td>
+<td>路径分析</td>
+</tr>
+<tr>
+<td><code>netstat</code></td>
+<td><code>Network Statistics</code></td>
+<td>Network Status</td>
+<td>网络连接</td>
+</tr>
+<tr>
+<td><code>nslookup</code></td>
+<td><code>Name Server Lookup</code></td>
+<td>DNS Lookup</td>
+<td>DNS查询</td>
+</tr>
+<tr>
+<td><code>arp</code></td>
+<td><code>Address Resolution Protocol</code></td>
+<td>ARP Table</td>
+<td>查看ARP</td>
+</tr>
+<tr>
+<td><code>route</code></td>
+<td><code>Route</code></td>
+<td>Routing Table</td>
+<td>路由表</td>
+</tr>
+<tr>
+<td><code>net</code></td>
+<td><code>Network</code></td>
+<td>Network Tools</td>
+<td>网络管理</td>
+</tr>
+<tr>
+<td><code>net use</code></td>
+<td><code>Network Use</code></td>
+<td>Map Drive</td>
+<td>映射共享</td>
+</tr>
+<tr>
+<td><code>net user</code></td>
+<td><code>Network User</code></td>
+<td>User Manager</td>
+<td>用户管理</td>
+</tr>
+<tr>
+<td><code>net localgroup</code></td>
+<td><code>Local Group</code></td>
+<td>Group Manager</td>
+<td>用户组</td>
+</tr>
+<tr>
+<td><code>net share</code></td>
+<td><code>Network Share</code></td>
+<td>Shared Folder</td>
+<td>共享目录</td>
+</tr>
+<tr>
+<td><code>net start</code></td>
+<td><code>Network Start</code></td>
+<td>Start Service</td>
+<td>启动服务</td>
+</tr>
+<tr>
+<td><code>net stop</code></td>
+<td><code>Network Stop</code></td>
+<td>Stop Service</td>
+<td>停止服务</td>
+</tr>
+<tr>
+<td><code>schtasks</code></td>
+<td><code>Scheduled Tasks</code></td>
+<td>Task Scheduler</td>
+<td>计划任务</td>
+</tr>
+<tr>
+<td><code>sc</code></td>
+<td><code>Service Control</code></td>
+<td>Service Control</td>
+<td>服务控制</td>
+</tr>
+<tr>
+<td><code>wmic</code></td>
+<td><code>Windows Management Instrumentation Command</code></td>
+<td>WMIC</td>
+<td>系统管理</td>
+</tr>
+<tr>
+<td><code>diskpart</code></td>
+<td><code>Disk Partition</code></td>
+<td>Disk Partition</td>
+<td>磁盘分区</td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td><code>Format</code></td>
+<td>Format Disk</td>
+<td>格式化</td>
+</tr>
+<tr>
+<td><code>chkdsk</code></td>
+<td><code>Check Disk</code></td>
+<td>Disk Check</td>
+<td>检查磁盘</td>
+</tr>
+<tr>
+<td><code>sfc</code></td>
+<td><code>System File Checker</code></td>
+<td>System File Check</td>
+<td>系统修复</td>
+</tr>
+<tr>
+<td><code>dism</code></td>
+<td><code>Deployment Image Servicing and Management</code></td>
+<td>DISM</td>
+<td>系统修复</td>
+</tr>
+<tr>
+<td><code>cipher</code></td>
+<td><code>Cipher</code></td>
+<td>Encryption Tool</td>
+<td>文件加密</td>
+</tr>
+<tr>
+<td><code>compact</code></td>
+<td><code>Compact</code></td>
+<td>File Compression</td>
+<td>压缩文件</td>
+</tr>
+<tr>
+<td><code>openfiles</code></td>
+<td><code>Open Files</code></td>
+<td>Open File List</td>
+<td>查看占用</td>
+</tr>
+<tr>
+<td><code>clip</code></td>
+<td><code>Clipboard</code></td>
+<td>Clipboard</td>
+<td>输出到剪贴板</td>
+</tr>
+<tr>
+<td><code>mklink</code></td>
+<td><code>Make Link</code></td>
+<td>Symbolic Link</td>
+<td>创建软链接</td>
+</tr>
+<tr>
+<td><code>runas</code></td>
+<td><code>Run As</code></td>
+<td>Run As Admin</td>
+<td>管理员运行</td>
+</tr>
+<tr>
+<td><code>takeown</code></td>
+<td><code>Take Ownership</code></td>
+<td>Ownership</td>
+<td>获取权限</td>
+</tr>
+<tr>
+<td><code>icacls</code></td>
+<td><code>Integrity Control ACL</code></td>
+<td>ACL Permission</td>
+<td>权限控制</td>
+</tr>
+<tr>
+<td><code>driverquery</code></td>
+<td><code>Driver Query</code></td>
+<td>Driver List</td>
+<td>查看驱动</td>
+</tr>
+<tr>
+<td><code>powercfg</code></td>
+<td><code>Power Configuration</code></td>
+<td>Power Config</td>
+<td>电源配置</td>
+</tr>
+<tr>
+<td><code>bcdedit</code></td>
+<td><code>Boot Configuration Data Edit</code></td>
+<td>Boot Config</td>
+<td>启动配置</td>
+</tr>
+<tr>
+<td><code>fsutil</code></td>
+<td><code>File System Utility</code></td>
+<td>File System</td>
+<td>文件系统</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td><code>Volume Label</code></td>
+<td>Disk Label</td>
+<td>修改卷标</td>
+</tr>
+<tr>
+<td><code>vol</code></td>
+<td><code>Volume</code></td>
+<td>Disk Volume</td>
+<td>查看卷信息</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="开发最常用-CMD-命令"><a href="#开发最常用-CMD-命令" class="headerlink" title="开发最常用 CMD 命令"></a>开发最常用 CMD 命令</h1><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cd</code></td>
+<td>切换目录</td>
+</tr>
+<tr>
+<td><code>dir</code></td>
+<td>查看文件</td>
+</tr>
+<tr>
+<td><code>cls</code></td>
+<td>清屏</td>
+</tr>
+<tr>
+<td><code>del</code></td>
+<td>删除文件</td>
+</tr>
+<tr>
+<td><code>rd /s /q</code></td>
+<td>强制删目录</td>
+</tr>
+<tr>
+<td><code>where python</code></td>
+<td>查Python</td>
+</tr>
+<tr>
+<td><code>tasklist</code></td>
+<td>查看进程</td>
+</tr>
+<tr>
+<td><code>taskkill /f /pid xxx</code></td>
+<td>杀进程</td>
+</tr>
+<tr>
+<td><code>ipconfig</code></td>
+<td>查看IP</td>
+</tr>
+<tr>
+<td><code>ping</code></td>
+<td>测试网络</td>
+</tr>
+<tr>
+<td><code>netstat -ano</code></td>
+<td>查看端口</td>
+</tr>
+<tr>
+<td><code>findstr</code></td>
+<td>搜索文本</td>
+</tr>
+<tr>
+<td><code>mklink</code></td>
+<td>创建软链接</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="高频组合"><a href="#高频组合" class="headerlink" title="高频组合"></a>高频组合</h1><h2 id="查端口占用"><a href="#查端口占用" class="headerlink" title="查端口占用"></a>查端口占用</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -ano | findstr 8080</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="杀端口进程"><a href="#杀端口进程" class="headerlink" title="杀端口进程"></a>杀端口进程</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">taskkill /f /pid 1234</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="强制删除目录"><a href="#强制删除目录" class="headerlink" title="强制删除目录"></a>强制删除目录</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rd /s /q test</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="查看-WiFi-密码"><a href="#查看-WiFi-密码" class="headerlink" title="查看 WiFi 密码"></a>查看 WiFi 密码</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netsh wlan show profile name=&quot;WiFi名称&quot; key=clear</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="顺序执行多个命令"><a href="#顺序执行多个命令" class="headerlink" title="顺序执行多个命令"></a>顺序执行多个命令</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">command1 &amp;&amp; command2</span><br></pre></td></tr></table></figure>
+
+
+
+<hr>
+<h1 id="PowerShell-快捷命令（Alias）大全"><a href="#PowerShell-快捷命令（Alias）大全" class="headerlink" title="PowerShell 快捷命令（Alias）大全"></a>PowerShell 快捷命令（Alias）大全</h1><table>
+<thead>
+<tr>
+<th>快捷命令</th>
+<th>完整命令</th>
+<th>英文含义</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ls</code></td>
+<td><code>Get-ChildItem</code></td>
+<td>Get Child Item</td>
+<td>查看文件&#x2F;目录</td>
+</tr>
+<tr>
+<td><code>dir</code></td>
+<td><code>Get-ChildItem</code></td>
+<td>Directory</td>
+<td>查看目录</td>
+</tr>
+<tr>
+<td><code>pwd</code></td>
+<td><code>Get-Location</code></td>
+<td>Print Working Directory</td>
+<td>当前路径</td>
+</tr>
+<tr>
+<td><code>cd</code></td>
+<td><code>Set-Location</code></td>
+<td>Change Directory</td>
+<td>切换目录</td>
+</tr>
+<tr>
+<td><code>mkdir</code></td>
+<td><code>New-Item -ItemType Directory</code></td>
+<td>Make Directory</td>
+<td>创建目录</td>
+</tr>
+<tr>
+<td><code>md</code></td>
+<td><code>mkdir</code></td>
+<td>Make Directory</td>
+<td>创建目录</td>
+</tr>
+<tr>
+<td><code>rm</code></td>
+<td><code>Remove-Item</code></td>
+<td>Remove Item</td>
+<td>删除文件</td>
+</tr>
+<tr>
+<td><code>del</code></td>
+<td><code>Remove-Item</code></td>
+<td>Delete</td>
+<td>删除</td>
+</tr>
+<tr>
+<td><code>erase</code></td>
+<td><code>Remove-Item</code></td>
+<td>Erase</td>
+<td>删除</td>
+</tr>
+<tr>
+<td><code>cp</code></td>
+<td><code>Copy-Item</code></td>
+<td>Copy Item</td>
+<td>复制</td>
+</tr>
+<tr>
+<td><code>copy</code></td>
+<td><code>Copy-Item</code></td>
+<td>Copy</td>
+<td>复制</td>
+</tr>
+<tr>
+<td><code>mv</code></td>
+<td><code>Move-Item</code></td>
+<td>Move Item</td>
+<td>移动</td>
+</tr>
+<tr>
+<td><code>move</code></td>
+<td><code>Move-Item</code></td>
+<td>Move</td>
+<td>移动</td>
+</tr>
+<tr>
+<td><code>ren</code></td>
+<td><code>Rename-Item</code></td>
+<td>Rename</td>
+<td>重命名</td>
+</tr>
+<tr>
+<td><code>cat</code></td>
+<td><code>Get-Content</code></td>
+<td>Concatenate</td>
+<td>查看文件内容</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td><code>Get-Content</code></td>
+<td>Type</td>
+<td>查看内容</td>
+</tr>
+<tr>
+<td><code>gc</code></td>
+<td><code>Get-Content</code></td>
+<td>Get Content</td>
+<td>获取内容</td>
+</tr>
+<tr>
+<td><code>sc</code></td>
+<td><code>Set-Content</code></td>
+<td>Set Content</td>
+<td>写入内容</td>
+</tr>
+<tr>
+<td><code>ni</code></td>
+<td><code>New-Item</code></td>
+<td>New Item</td>
+<td>新建文件&#x2F;目录</td>
+</tr>
+<tr>
+<td><code>gi</code></td>
+<td><code>Get-Item</code></td>
+<td>Get Item</td>
+<td>获取对象</td>
+</tr>
+<tr>
+<td><code>si</code></td>
+<td><code>Set-Item</code></td>
+<td>Set Item</td>
+<td>设置对象</td>
+</tr>
+<tr>
+<td><code>ri</code></td>
+<td><code>Remove-Item</code></td>
+<td>Remove Item</td>
+<td>删除对象</td>
+</tr>
+<tr>
+<td><code>ii</code></td>
+<td><code>Invoke-Item</code></td>
+<td>Invoke Item</td>
+<td>打开文件</td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td><code>Start-Process</code></td>
+<td>Start Process</td>
+<td>启动程序</td>
+</tr>
+<tr>
+<td><code>ps</code></td>
+<td><code>Get-Process</code></td>
+<td>Process Status</td>
+<td>查看进程</td>
+</tr>
+<tr>
+<td><code>kill</code></td>
+<td><code>Stop-Process</code></td>
+<td>Kill Process</td>
+<td>结束进程</td>
+</tr>
+<tr>
+<td><code>gps</code></td>
+<td><code>Get-Process</code></td>
+<td>Get Process</td>
+<td>获取进程</td>
+</tr>
+<tr>
+<td><code>spps</code></td>
+<td><code>Stop-Process</code></td>
+<td>Stop Process</td>
+<td>停止进程</td>
+</tr>
+<tr>
+<td><code>cls</code></td>
+<td><code>Clear-Host</code></td>
+<td>Clear Screen</td>
+<td>清屏</td>
+</tr>
+<tr>
+<td><code>clear</code></td>
+<td><code>Clear-Host</code></td>
+<td>Clear</td>
+<td>清屏</td>
+</tr>
+<tr>
+<td><code>history</code></td>
+<td><code>Get-History</code></td>
+<td>Command History</td>
+<td>历史命令</td>
+</tr>
+<tr>
+<td><code>h</code></td>
+<td><code>Get-History</code></td>
+<td>History</td>
+<td>历史命令</td>
+</tr>
+<tr>
+<td><code>man</code></td>
+<td><code>help</code></td>
+<td>Manual</td>
+<td>帮助文档</td>
+</tr>
+<tr>
+<td><code>help</code></td>
+<td><code>Get-Help</code></td>
+<td>Get Help</td>
+<td>查看帮助</td>
+</tr>
+<tr>
+<td><code>echo</code></td>
+<td><code>Write-Output</code></td>
+<td>Echo Output</td>
+<td>输出内容</td>
+</tr>
+<tr>
+<td><code>write</code></td>
+<td><code>Write-Output</code></td>
+<td>Write Output</td>
+<td>输出</td>
+</tr>
+<tr>
+<td><code>sleep</code></td>
+<td><code>Start-Sleep</code></td>
+<td>Sleep</td>
+<td>延迟</td>
+</tr>
+<tr>
+<td><code>sort</code></td>
+<td><code>Sort-Object</code></td>
+<td>Sort Object</td>
+<td>排序</td>
+</tr>
+<tr>
+<td><code>measure</code></td>
+<td><code>Measure-Object</code></td>
+<td>Measure Object</td>
+<td>统计</td>
+</tr>
+<tr>
+<td><code>select</code></td>
+<td><code>Select-Object</code></td>
+<td>Select Object</td>
+<td>选择字段</td>
+</tr>
+<tr>
+<td><code>where</code></td>
+<td><code>Where-Object</code></td>
+<td>Where Condition</td>
+<td>条件过滤</td>
+</tr>
+<tr>
+<td><code>foreach</code></td>
+<td><code>ForEach-Object</code></td>
+<td>For Each Object</td>
+<td>循环处理</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td><code>Group-Object</code></td>
+<td>Group Object</td>
+<td>分组</td>
+</tr>
+<tr>
+<td><code>compare</code></td>
+<td><code>Compare-Object</code></td>
+<td>Compare Object</td>
+<td>比较对象</td>
+</tr>
+<tr>
+<td><code>tee</code></td>
+<td><code>Tee-Object</code></td>
+<td>Tee Output</td>
+<td>同时输出</td>
+</tr>
+<tr>
+<td><code>diff</code></td>
+<td><code>Compare-Object</code></td>
+<td>Difference</td>
+<td>比较差异</td>
+</tr>
+<tr>
+<td><code>wget</code></td>
+<td><code>Invoke-WebRequest</code></td>
+<td>Web Get</td>
+<td>下载网页</td>
+</tr>
+<tr>
+<td><code>curl</code></td>
+<td><code>Invoke-WebRequest</code></td>
+<td>Client URL</td>
+<td>网络请求</td>
+</tr>
+<tr>
+<td><code>iwr</code></td>
+<td><code>Invoke-WebRequest</code></td>
+<td>Invoke Web Request</td>
+<td>HTTP请求</td>
+</tr>
+<tr>
+<td><code>irm</code></td>
+<td><code>Invoke-RestMethod</code></td>
+<td>Invoke REST Method</td>
+<td>REST API</td>
+</tr>
+<tr>
+<td><code>iex</code></td>
+<td><code>Invoke-Expression</code></td>
+<td>Invoke Expression</td>
+<td>执行字符串命令</td>
+</tr>
+<tr>
+<td><code>ft</code></td>
+<td><code>Format-Table</code></td>
+<td>Format Table</td>
+<td>表格显示</td>
+</tr>
+<tr>
+<td><code>fl</code></td>
+<td><code>Format-List</code></td>
+<td>Format List</td>
+<td>列表显示</td>
+</tr>
+<tr>
+<td><code>gm</code></td>
+<td><code>Get-Member</code></td>
+<td>Get Member</td>
+<td>查看对象属性</td>
+</tr>
+<tr>
+<td><code>gal</code></td>
+<td><code>Get-Alias</code></td>
+<td>Get Alias</td>
+<td>查看别名</td>
+</tr>
+<tr>
+<td><code>nal</code></td>
+<td><code>New-Alias</code></td>
+<td>New Alias</td>
+<td>创建别名</td>
+</tr>
+<tr>
+<td><code>sal</code></td>
+<td><code>Set-Alias</code></td>
+<td>Set Alias</td>
+<td>设置别名</td>
+</tr>
+<tr>
+<td><code>ipal</code></td>
+<td><code>Import-Alias</code></td>
+<td>Import Alias</td>
+<td>导入别名</td>
+</tr>
+<tr>
+<td><code>epal</code></td>
+<td><code>Export-Alias</code></td>
+<td>Export Alias</td>
+<td>导出别名</td>
+</tr>
+<tr>
+<td><code>gcm</code></td>
+<td><code>Get-Command</code></td>
+<td>Get Command</td>
+<td>查看命令</td>
+</tr>
+<tr>
+<td><code>gsv</code></td>
+<td><code>Get-Service</code></td>
+<td>Get Service</td>
+<td>查看服务</td>
+</tr>
+<tr>
+<td><code>sasv</code></td>
+<td><code>Start-Service</code></td>
+<td>Start Service</td>
+<td>启动服务</td>
+</tr>
+<tr>
+<td><code>spsv</code></td>
+<td><code>Stop-Service</code></td>
+<td>Stop Service</td>
+<td>停止服务</td>
+</tr>
+<tr>
+<td><code>rsv</code></td>
+<td><code>Restart-Service</code></td>
+<td>Restart Service</td>
+<td>重启服务</td>
+</tr>
+<tr>
+<td><code>gdr</code></td>
+<td><code>Get-PSDrive</code></td>
+<td>Get PowerShell Drive</td>
+<td>查看驱动器</td>
+</tr>
+<tr>
+<td><code>mount</code></td>
+<td><code>New-PSDrive</code></td>
+<td>Mount Drive</td>
+<td>挂载驱动</td>
+</tr>
+<tr>
+<td><code>pwd</code></td>
+<td><code>Get-Location</code></td>
+<td>Present Working Directory</td>
+<td>当前目录</td>
+</tr>
+<tr>
+<td><code>pushd</code></td>
+<td><code>Push-Location</code></td>
+<td>Push Directory</td>
+<td>保存目录</td>
+</tr>
+<tr>
+<td><code>popd</code></td>
+<td><code>Pop-Location</code></td>
+<td>Pop Directory</td>
+<td>返回目录</td>
+</tr>
+<tr>
+<td><code>clc</code></td>
+<td><code>Clear-Content</code></td>
+<td>Clear Content</td>
+<td>清空内容</td>
+</tr>
+<tr>
+<td><code>clv</code></td>
+<td><code>Clear-Variable</code></td>
+<td>Clear Variable</td>
+<td>清空变量</td>
+</tr>
+<tr>
+<td><code>rv</code></td>
+<td><code>Remove-Variable</code></td>
+<td>Remove Variable</td>
+<td>删除变量</td>
+</tr>
+<tr>
+<td><code>set</code></td>
+<td><code>Set-Variable</code></td>
+<td>Set Variable</td>
+<td>设置变量</td>
+</tr>
+<tr>
+<td><code>sv</code></td>
+<td><code>Set-Variable</code></td>
+<td>Set Variable</td>
+<td>设置变量</td>
+</tr>
+<tr>
+<td><code>gv</code></td>
+<td><code>Get-Variable</code></td>
+<td>Get Variable</td>
+<td>获取变量</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td><code>Get-ChildItem Env:</code></td>
+<td>Environment</td>
+<td>环境变量</td>
+</tr>
+<tr>
+<td><code>mount</code></td>
+<td><code>New-PSDrive</code></td>
+<td>Mount</td>
+<td>映射盘符</td>
+</tr>
+<tr>
+<td><code>chdir</code></td>
+<td><code>Set-Location</code></td>
+<td>Change Directory</td>
+<td>切换目录</td>
+</tr>
+<tr>
+<td><code>rmdir</code></td>
+<td><code>Remove-Item</code></td>
+<td>Remove Directory</td>
+<td>删除目录</td>
+</tr>
+<tr>
+<td><code>pause</code></td>
+<td><code>Read-Host</code></td>
+<td>Pause</td>
+<td>暂停等待输入</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="开发最常用-PowerShell-命令"><a href="#开发最常用-PowerShell-命令" class="headerlink" title="开发最常用 PowerShell 命令"></a>开发最常用 PowerShell 命令</h1><table>
+<thead>
+<tr>
+<th>快捷命令</th>
+<th>完整命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ls</code></td>
+<td><code>Get-ChildItem</code></td>
+<td>查看目录</td>
+</tr>
+<tr>
+<td><code>cd</code></td>
+<td><code>Set-Location</code></td>
+<td>切换目录</td>
+</tr>
+<tr>
+<td><code>pwd</code></td>
+<td><code>Get-Location</code></td>
+<td>当前路径</td>
+</tr>
+<tr>
+<td><code>cat</code></td>
+<td><code>Get-Content</code></td>
+<td>查看文件</td>
+</tr>
+<tr>
+<td><code>rm</code></td>
+<td><code>Remove-Item</code></td>
+<td>删除</td>
+</tr>
+<tr>
+<td><code>cp</code></td>
+<td><code>Copy-Item</code></td>
+<td>复制</td>
+</tr>
+<tr>
+<td><code>mv</code></td>
+<td><code>Move-Item</code></td>
+<td>移动</td>
+</tr>
+<tr>
+<td><code>ps</code></td>
+<td><code>Get-Process</code></td>
+<td>查看进程</td>
+</tr>
+<tr>
+<td><code>kill</code></td>
+<td><code>Stop-Process</code></td>
+<td>杀进程</td>
+</tr>
+<tr>
+<td><code>curl</code></td>
+<td><code>Invoke-WebRequest</code></td>
+<td>请求接口</td>
+</tr>
+<tr>
+<td><code>wget</code></td>
+<td><code>Invoke-WebRequest</code></td>
+<td>下载文件</td>
+</tr>
+<tr>
+<td><code>where</code></td>
+<td><code>Where-Object</code></td>
+<td>过滤</td>
+</tr>
+<tr>
+<td><code>select</code></td>
+<td><code>Select-Object</code></td>
+<td>选字段</td>
+</tr>
+<tr>
+<td><code>foreach</code></td>
+<td><code>ForEach-Object</code></td>
+<td>循环</td>
+</tr>
+<tr>
+<td><code>history</code></td>
+<td><code>Get-History</code></td>
+<td>历史命令</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Windows/" rel="tag"># Windows</a>
+              <a href="/tags/%E5%91%BD%E4%BB%A4/" rel="tag"># 命令</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+            </div>
+            <div class="post-nav-item">
+                <a href="/03-%E5%B7%A5%E5%85%B7/04-%E5%91%BD%E4%BB%A4/Windows%E5%BF%AB%E6%8D%B7%E9%94%AE/" rel="next" title="Windows 常用快捷键">
+                  Windows 常用快捷键 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">27k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:38</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

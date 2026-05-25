@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="记录 FineReport 帆软报表系统权限治理实践。在长期运维过程中，由于历史权限直接绑定人员、角色命名不统一、报表授权缺少规范，导致权限关系复杂、维护成本逐渐升高。   为解决上述问题，本文通过：  梳理现有用户与报表权限； 建立统一角色命名规范； 将“人员权限”迁移为“角色权限”； 使用Python脚本批量创建角色与绑定权限； 与 OA 系统集成实现权限申请自动化；  最终实现 FineR">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题">
+<meta property="og:url" content="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%A7%A3%E5%86%B3%E8%A7%92%E8%89%B2%E6%9D%83%E9%99%90%E6%B7%B7%E4%B9%B1%E9%97%AE%E9%A2%98/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="记录 FineReport 帆软报表系统权限治理实践。在长期运维过程中，由于历史权限直接绑定人员、角色命名不统一、报表授权缺少规范，导致权限关系复杂、维护成本逐渐升高。   为解决上述问题，本文通过：  梳理现有用户与报表权限； 建立统一角色命名规范； 将“人员权限”迁移为“角色权限”； 使用Python脚本批量创建角色与绑定权限； 与 OA 系统集成实现权限申请自动化；  最终实现 FineR">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-10-11T06:56:07.000Z">
+<meta property="article:modified_time" content="2026-05-25T03:39:59.539Z">
+<meta property="article:author" content="mrko">
+<meta property="article:tag" content="自动化">
+<meta property="article:tag" content="FR">
+<meta property="article:tag" content="帆软报表">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%A7%A3%E5%86%B3%E8%A7%92%E8%89%B2%E6%9D%83%E9%99%90%E6%B7%B7%E4%B9%B1%E9%97%AE%E9%A2%98/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%A7%A3%E5%86%B3%E8%A7%92%E8%89%B2%E6%9D%83%E9%99%90%E6%B7%B7%E4%B9%B1%E9%97%AE%E9%A2%98/","path":"02-项目/06-FR/FineReport 帆软报表系统运维实践：解决角色权限混乱问题/","title":"FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%81%E4%B8%9A%E9%9C%80%E8%A6%81%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">为什么企业需要报表系统？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.1.</span> <span class="nav-text">背景</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8"><span class="nav-number">2.</span> <span class="nav-text">什么是帆软报表</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89"><span class="nav-number">2.1.</span> <span class="nav-text">定义</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">遇到的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%97%9B%E7%82%B9"><span class="nav-number">3.1.</span> <span class="nav-text">痛点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">3.2.</span> <span class="nav-text">问题分析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E6%9D%83%E9%99%90%E6%A2%B3%E7%90%86"><span class="nav-number">4.1.</span> <span class="nav-text">1. 权限梳理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E7%BB%9F%E4%B8%80%E8%A7%92%E8%89%B2%E8%A7%84%E8%8C%83"><span class="nav-number">4.2.</span> <span class="nav-text">2. 统一角色规范</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E8%87%AA%E5%8A%A8%E5%8C%96%E5%A4%84%E7%90%86"><span class="nav-number">4.3.</span> <span class="nav-text">3. 自动化处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%94%A8%E6%88%B7%E6%9D%83%E9%99%90%E8%BF%81%E7%A7%BB"><span class="nav-number">4.4.</span> <span class="nav-text">4. 用户权限迁移</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-OA%E7%B3%BB%E7%BB%9F%E9%9B%86%E6%88%90"><span class="nav-number">4.5.</span> <span class="nav-text">5. OA系统集成</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E6%96%BD%E6%88%90%E6%9E%9C"><span class="nav-number">5.</span> <span class="nav-text">实施成果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E5%86%99%E8%84%9A%E6%9C%AC%E6%80%9D%E8%B7%AF"><span class="nav-number">6.</span> <span class="nav-text">编写脚本思路</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A5%E9%AA%A4"><span class="nav-number">6.1.</span> <span class="nav-text">步骤</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">7.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">36</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%E5%AE%9E%E8%B7%B5%EF%BC%9A%E8%A7%A3%E5%86%B3%E8%A7%92%E8%89%B2%E6%9D%83%E9%99%90%E6%B7%B7%E4%B9%B1%E9%97%AE%E9%A2%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          FineReport 帆软报表系统运维实践（一）：解决角色权限混乱问题
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2025-10-11 14:56:07" itemprop="dateCreated datePublished" datetime="2025-10-11T14:56:07+08:00">2025-10-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/" itemprop="url" rel="index"><span itemprop="name">02-项目</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/02-%E9%A1%B9%E7%9B%AE/06-FR/" itemprop="url" rel="index"><span itemprop="name">06-FR</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>9 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>记录 FineReport 帆软报表系统权限治理实践。<br>在长期运维过程中，由于历史权限直接绑定人员、角色命名不统一、报表授权缺少规范，导致权限关系复杂、维护成本逐渐升高。  </p>
+<p>为解决上述问题，本文通过：</p>
+<ul>
+<li>梳理现有用户与报表权限；</li>
+<li>建立统一角色命名规范；</li>
+<li>将“人员权限”迁移为“角色权限”；</li>
+<li>使用Python脚本批量创建角色与绑定权限；</li>
+<li>与 OA 系统集成实现权限申请自动化；</li>
+</ul>
+<p>最终实现 FineReport 权限体系标准化，并显著降低后续运维成本。  </p>
+<p>适用于：</p>
+<ul>
+<li>FineReport 运维人员</li>
+<li>制造业 MES &#x2F; ERP &#x2F; OA 集成场景</li>
+<li>企业报表权限治理与自动化建设</li>
+</ul>
+</blockquote>
+<span id="more"></span>
+
+
+<h2 id="为什么企业需要报表系统？"><a href="#为什么企业需要报表系统？" class="headerlink" title="为什么企业需要报表系统？"></a>为什么企业需要报表系统？</h2><h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><h4 id="行业背景"><a href="#行业背景" class="headerlink" title="行业背景"></a>行业背景</h4><ul>
+<li>企业在OA、MES、ERP、CRM等系统运行后，会产生大量的业务数据。</li>
+<li>原始的数据分散、难查看、不直观。</li>
+<li>管理层需要统计、分析、看板、打印、决策支持。</li>
+<li>故引入报表平台。</li>
+</ul>
+<h4 id="个人背景"><a href="#个人背景" class="headerlink" title="个人背景"></a>个人背景</h4><ul>
+<li>工作中涉及 FineReport 报表系统的日常运维，包括用户账号开通、角色权限维护、报表访问管理等内容。</li>
+<li>在制造业信息化项目中，需要绘制相关报表。</li>
+<li>由于数据来源涉及MES系统，因此开始接触鼎捷 ERP-T100 系统内置的帆软报表。</li>
+<li>在实际使用过程中，逐渐了解到 FineReport 在企业报表领域的应用场景。</li>
+</ul>
+<h2 id="什么是帆软报表"><a href="#什么是帆软报表" class="headerlink" title="什么是帆软报表"></a>什么是帆软报表</h2><h3 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h3><ul>
+<li>FineReport 是帆软推出的一款企业级 Web 报表工具。</li>
+<li>主要用于企业数据统计、报表展示、数据填报以及 BI 可视化分析。</li>
+<li>在制造业中，常用于 MES、ERP、质量系统等业务数据展示。</li>
+</ul>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><h3 id="痛点"><a href="#痛点" class="headerlink" title="痛点"></a>痛点</h3><ul>
+<li>刚开始接触 FineReport 报表系统运维时，主要涉及 OA 流程申请后的报表权限开通工作。<ul>
+<li>在实际维护过程中发现：<ul>
+<li>部分报表权限按照部门进行划分</li>
+<li>部分权限按照角色进行划分</li>
+<li>还有部分权限直接分配到具体人员</li>
+</ul>
+</li>
+<li>随着系统长期运行，逐渐出现：<ul>
+<li>权限结构不统一</li>
+<li>用户权限关系复杂</li>
+<li>人员变动后难以维护</li>
+<li>权限继承关系不清晰</li>
+<li>新增报表时容易遗漏授权</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>同时，由于历史原因，很多权限直接绑定到个人账号，缺少统一的角色规范，导致后续维护成本较高。</li>
+</ul>
+<hr>
+<h3 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h3><ul>
+<li><p>为了降低后续运维复杂度，需要对现有权限体系进行统一梳理。</p>
+</li>
+<li><p>目标包括：</p>
+<ul>
+<li>对原有用户权限进行整理与备份；</li>
+<li>建立统一的角色命名规范；</li>
+<li>将“人员权限”逐步转换为“角色权限”；</li>
+<li>实现报表与角色的标准化绑定；</li>
+<li>减少人工维护成本。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><h3 id="1-权限梳理"><a href="#1-权限梳理" class="headerlink" title="1. 权限梳理"></a>1. 权限梳理</h3><ul>
+<li>首先对现有 FineReport 用户权限进行导出与备份。<ul>
+<li>包括：<ul>
+<li>用户账号；</li>
+<li>角色信息；</li>
+<li>报表目录权限；</li>
+<li>用户与角色对应关系。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>通过整理历史权限数据，分析实际使用情况。</li>
+</ul>
+<hr>
+<h3 id="2-统一角色规范"><a href="#2-统一角色规范" class="headerlink" title="2. 统一角色规范"></a>2. 统一角色规范</h3><p>按照“报表分类 + 具体功能”的方式重新规划角色。</p>
+<p>例如：</p>
+<table>
+<thead>
+<tr>
+<th>角色名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>制造报表-*</td>
+<td>制造报表目录下的基础权限</td>
+</tr>
+<tr>
+<td>制造报表-历史批次过账查询</td>
+<td>指定历史批次过账查询报表访问权限</td>
+</tr>
+<tr>
+<td>质量报表-SPC分析</td>
+<td>指定SPC分析报表访问权限</td>
+</tr>
+</tbody></table>
+<p>通过角色与报表进行绑定，实现权限标准化。</p>
+<hr>
+<h3 id="3-自动化处理"><a href="#3-自动化处理" class="headerlink" title="3. 自动化处理"></a>3. 自动化处理</h3><p>由于系统中的报表数量较多，</p>
+<p>如果完全依靠人工：</p>
+<ul>
+<li>创建角色；</li>
+<li>绑定目录；</li>
+<li>分配权限；</li>
+</ul>
+<p>不仅效率较低，也容易出现遗漏。</p>
+<p>因此通过脚本方式：</p>
+<ul>
+<li>自动创建角色；</li>
+<li>批量绑定报表目录；</li>
+<li>自动生成权限关系。</li>
+</ul>
+<p>减少重复性运维工作。</p>
+<hr>
+<h3 id="4-用户权限迁移"><a href="#4-用户权限迁移" class="headerlink" title="4. 用户权限迁移"></a>4. 用户权限迁移</h3><p>在角色体系建立完成后，</p>
+<p>再根据历史备份数据：</p>
+<ul>
+<li>分析用户原有权限；</li>
+<li>匹配对应角色；</li>
+<li>批量完成角色分配。</li>
+</ul>
+<p>逐步将“人员直绑权限”迁移为“角色权限”。</p>
+<hr>
+<h3 id="5-OA系统集成"><a href="#5-OA系统集成" class="headerlink" title="5. OA系统集成"></a>5. OA系统集成</h3><p>后续进一步将 FineReport 角色开放为数据库视图，</p>
+<p>并同步至 OA 系统。</p>
+<p>实现：</p>
+<ul>
+<li>OA 在线申请报表权限；</li>
+<li>自动读取角色列表；</li>
+<li>用户自主选择权限；</li>
+<li>减少人工维护。</li>
+</ul>
+<p>相比传统手工维护方式：</p>
+<ul>
+<li>提高了权限申请效率；</li>
+<li>降低了配置错误率；</li>
+<li>提升了权限管理规范性。</li>
+</ul>
+<hr>
+<ul>
+<li>视图参考<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">    f.id,</span><br><span class="line">    p.displayName <span class="keyword">AS</span> parentName,                   <span class="comment">-- 父目录名称</span></span><br><span class="line">    CONCAT(p.displayName, <span class="string">&#x27;/&#x27;</span>, f.displayName) <span class="keyword">AS</span> fullDisplayName,  <span class="comment">-- 拼接路径</span></span><br><span class="line">    p.sortIndex <span class="keyword">AS</span> parentSort,                     <span class="comment">-- 父目录排序</span></span><br><span class="line">    f.sortIndex <span class="keyword">AS</span> fileSort,                       <span class="comment">-- 文件排序</span></span><br><span class="line">    f.parentId</span><br><span class="line"><span class="keyword">FROM</span> fine_authority_object f</span><br><span class="line"><span class="keyword">LEFT</span> <span class="keyword">JOIN</span> fine_authority_object p</span><br><span class="line">    <span class="keyword">ON</span> f.parentId <span class="operator">=</span> p.id</span><br><span class="line"><span class="keyword">WHERE</span> f.expandId <span class="keyword">IS</span> <span class="keyword">NOT NULL</span></span><br><span class="line">  <span class="keyword">AND</span> f.fullPath <span class="operator">!=</span> <span class="string">&#x27;decision-directory-root&#x27;</span></span><br><span class="line">  <span class="keyword">AND</span> f.parentId <span class="operator">!=</span> <span class="string">&#x27;decision-directory-root&#x27;</span></span><br><span class="line"><span class="keyword">ORDER</span> <span class="keyword">BY</span> p.sortIndex, f.sortIndex;</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="实施成果"><a href="#实施成果" class="headerlink" title="实施成果"></a>实施成果</h2><p>经过整理后：</p>
+<ul>
+<li>FineReport 权限结构更加清晰；</li>
+<li>用户权限维护标准化；</li>
+<li>新增报表可快速配置角色；</li>
+<li>OA 与报表权限实现联动；</li>
+<li>大幅降低后续运维成本。</li>
+</ul>
+<p>同时也为后续：</p>
+<ul>
+<li>报表扩展；</li>
+<li>权限审计；</li>
+<li>系统升级；</li>
+<li>多部门协同；</li>
+</ul>
+<p>提供了更加稳定的权限基础。</p>
+<h2 id="编写脚本思路"><a href="#编写脚本思路" class="headerlink" title="编写脚本思路"></a>编写脚本思路</h2><p>整体流程如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">获取 <span class="title class_">Token</span></span><br><span class="line">    ↓</span><br><span class="line">读取 <span class="title class_">FineReport</span> 目录</span><br><span class="line">    ↓</span><br><span class="line">生成角色列表</span><br><span class="line">    ↓</span><br><span class="line">批量创建角色</span><br><span class="line">    ↓</span><br><span class="line">批量绑定报表权限</span><br><span class="line">    ↓</span><br><span class="line">生成执行记录</span><br></pre></td></tr></table></figure>
+
+<h3 id="步骤"><a href="#步骤" class="headerlink" title="步骤"></a>步骤</h3><h4 id="1-创建应用"><a href="#1-创建应用" class="headerlink" title="1. 创建应用"></a>1. 创建应用</h4><p>首先在 FineReport 平台中创建对外应用。</p>
+<p>用于生成：</p>
+<ul>
+<li><code>client_id</code></li>
+<li><code>client_secret</code></li>
+</ul>
+<p>后续脚本通过应用身份调用 OpenAPI。</p>
+<p>这样可以避免直接使用管理员账号进行接口操作，同时便于后续权限控制与接口管理。</p>
+<hr>
+<h4 id="2-分析并确认-API-接口"><a href="#2-分析并确认-API-接口" class="headerlink" title="2. 分析并确认 API 接口"></a>2. 分析并确认 API 接口</h4><p>通过 FineReport OpenAPI 文档，确认本次权限改造所需接口。</p>
+<p>主要包括：</p>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Token API</td>
+<td>获取访问 Token</td>
+</tr>
+<tr>
+<td>Entry API</td>
+<td>获取报表目录</td>
+</tr>
+<tr>
+<td>Role API</td>
+<td>创建角色</td>
+</tr>
+<tr>
+<td>Auth API</td>
+<td>绑定角色与报表权限</td>
+</tr>
+</tbody></table>
+<p>对应代码配置如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">BASE_URL = &quot;http://172.16.80.xxx:xxxx&quot;</span><br><span class="line"></span><br><span class="line">TOKEN_URL = f&quot;&#123;BASE_URL&#125;/digiwin/kanban/sp/client/api/token&quot;</span><br><span class="line">ENTRY_URL = f&quot;&#123;BASE_URL&#125;/digiwin/kanban/sp/client/api/entry&quot;</span><br><span class="line">ROLE_URL = f&quot;&#123;BASE_URL&#125;/digiwin/kanban/sp/client/api/v2/role&quot;</span><br><span class="line">AUTH_URL = f&quot;&#123;BASE_URL&#125;/digiwin/kanban/sp/client/api/v2/auth/role/entry&quot;</span><br><span class="line"></span><br><span class="line">CLIENT_ID = &quot;xxxxxx&quot;</span><br><span class="line">CLIENT_SECRET = &quot;xxxxxxx&quot;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="3-编写自动化脚本"><a href="#3-编写自动化脚本" class="headerlink" title="3. 编写自动化脚本"></a>3. 编写自动化脚本</h4><ul>
+<li>参考示例如下：<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*-</span></span><br><span class="line"><span class="keyword">import</span> argparse</span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">from</span> datetime <span class="keyword">import</span> datetime</span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== 基础配置 ==================</span></span><br><span class="line">BASE_URL = <span class="string">&quot;http://172.16.80.xxx:xxxx&quot;</span></span><br><span class="line">TOKEN_URL = <span class="string">f&quot;<span class="subst">&#123;BASE_URL&#125;</span>/digiwin/kanban/sp/client/api/token&quot;</span></span><br><span class="line">ENTRY_URL = <span class="string">f&quot;<span class="subst">&#123;BASE_URL&#125;</span>/digiwin/kanban/sp/client/api/entry&quot;</span></span><br><span class="line">ROLE_URL = <span class="string">f&quot;<span class="subst">&#123;BASE_URL&#125;</span>/digiwin/kanban/sp/client/api/v2/role&quot;</span></span><br><span class="line">AUTH_URL = <span class="string">f&quot;<span class="subst">&#123;BASE_URL&#125;</span>/digiwin/kanban/sp/client/api/v2/auth/role/entry&quot;</span></span><br><span class="line">CLIENT_ID = <span class="string">&quot;xxxxxx&quot;</span></span><br><span class="line">CLIENT_SECRET = <span class="string">&quot;xxxxxxx&quot;</span></span><br><span class="line"></span><br><span class="line">ROOT_DIR = os.path.dirname(os.path.abspath(__file__))</span><br><span class="line">RUNS_DIR = os.path.join(ROOT_DIR, <span class="string">&quot;runs&quot;</span>)</span><br><span class="line"></span><br><span class="line">ROOT_ENTRY_ID = <span class="string">&quot;decision-directory-root&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== 通用工具 ==================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">exit_with_error</span>(<span class="params">msg</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;[ERROR] <span class="subst">&#123;msg&#125;</span>&quot;</span>)</span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">ensure_dir</span>(<span class="params">path</span>):</span><br><span class="line">    os.makedirs(path, exist_ok=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">save_json</span>(<span class="params">path, data</span>):</span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(path, <span class="string">&quot;w&quot;</span>, encoding=<span class="string">&quot;utf-8&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        json.dump(data, f, ensure_ascii=<span class="literal">False</span>, indent=<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">load_json</span>(<span class="params">path</span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(path):</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">None</span></span><br><span class="line">    <span class="keyword">with</span> <span class="built_in">open</span>(path, <span class="string">&quot;r&quot;</span>, encoding=<span class="string">&quot;utf-8&quot;</span>) <span class="keyword">as</span> f:</span><br><span class="line">        <span class="keyword">return</span> json.load(f)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== Run 管理 ==================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">new_run_id</span>():</span><br><span class="line">    <span class="keyword">return</span> datetime.now().strftime(<span class="string">&quot;%Y-%m-%d_%H%M%S&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">list_runs</span>():</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(RUNS_DIR):</span><br><span class="line">        <span class="keyword">return</span> []</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">sorted</span>([d <span class="keyword">for</span> d <span class="keyword">in</span> os.listdir(RUNS_DIR) <span class="keyword">if</span> os.path.isdir(os.path.join(RUNS_DIR, d))])</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">resolve_run</span>(<span class="params">run_arg</span>):</span><br><span class="line">    ensure_dir(RUNS_DIR)</span><br><span class="line">    <span class="keyword">if</span> run_arg <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">        rid = new_run_id()</span><br><span class="line">        run_path = os.path.join(RUNS_DIR, rid)</span><br><span class="line">        ensure_dir(run_path)</span><br><span class="line">        meta = &#123;</span><br><span class="line">            <span class="string">&quot;run_id&quot;</span>: rid,</span><br><span class="line">            <span class="string">&quot;start_time&quot;</span>: datetime.now().isoformat(),</span><br><span class="line">            <span class="string">&quot;base_url&quot;</span>: BASE_URL,</span><br><span class="line">            <span class="string">&quot;steps&quot;</span>: &#123;&#125;</span><br><span class="line">        &#125;</span><br><span class="line">        save_json(os.path.join(run_path, <span class="string">&quot;meta.json&quot;</span>), meta)</span><br><span class="line">        <span class="keyword">return</span> rid, run_path</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> run_arg == <span class="string">&quot;latest&quot;</span>:</span><br><span class="line">        runs = list_runs()</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> runs:</span><br><span class="line">            exit_with_error(<span class="string">&quot;不存在任何历史 run&quot;</span>)</span><br><span class="line">        rid = runs[-<span class="number">1</span>]</span><br><span class="line">        <span class="keyword">return</span> rid, os.path.join(RUNS_DIR, rid)</span><br><span class="line"></span><br><span class="line">    run_path = os.path.join(RUNS_DIR, run_arg)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(run_path):</span><br><span class="line">        exit_with_error(<span class="string">f&quot;指定的 run 不存在: <span class="subst">&#123;run_arg&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">return</span> run_arg, run_path</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">update_step_status</span>(<span class="params">run_path, step, status</span>):</span><br><span class="line">    meta_path = os.path.join(run_path, <span class="string">&quot;meta.json&quot;</span>)</span><br><span class="line">    meta = load_json(meta_path) <span class="keyword">or</span> &#123;&#125;</span><br><span class="line">    meta.setdefault(<span class="string">&quot;steps&quot;</span>, &#123;&#125;)[step] = status</span><br><span class="line">    save_json(meta_path, meta)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== Token 管理 ==================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_token</span>(<span class="params">run_path</span>):</span><br><span class="line">    token_path = os.path.join(run_path, <span class="string">&quot;token.json&quot;</span>)</span><br><span class="line">    cache = load_json(token_path)</span><br><span class="line">    now = time.time()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> cache <span class="keyword">and</span> cache.get(<span class="string">&quot;access_token&quot;</span>) <span class="keyword">and</span> now &lt; cache.get(<span class="string">&quot;expire_at&quot;</span>, <span class="number">0</span>):</span><br><span class="line">        <span class="keyword">return</span> cache[<span class="string">&quot;access_token&quot;</span>]</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;[INFO] 获取新 token...&quot;</span>)</span><br><span class="line">    headers = &#123;</span><br><span class="line">        <span class="string">&quot;client_id&quot;</span>: CLIENT_ID,</span><br><span class="line">        <span class="string">&quot;secret&quot;</span>: CLIENT_SECRET,</span><br><span class="line">        <span class="string">&quot;Content-Type&quot;</span>: <span class="string">&quot;application/json&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        resp = requests.post(TOKEN_URL, headers=headers, timeout=<span class="number">10</span>)</span><br><span class="line">        resp.raise_for_status()</span><br><span class="line">        data = resp.json().get(<span class="string">&quot;data&quot;</span>)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> data <span class="keyword">or</span> <span class="string">&quot;access_token&quot;</span> <span class="keyword">not</span> <span class="keyword">in</span> data:</span><br><span class="line">            exit_with_error(<span class="string">f&quot;token 接口返回异常: <span class="subst">&#123;resp.text&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">        token_info = &#123;</span><br><span class="line">            <span class="string">&quot;access_token&quot;</span>: data[<span class="string">&quot;access_token&quot;</span>],</span><br><span class="line">            <span class="string">&quot;expire_at&quot;</span>: now + <span class="built_in">int</span>(data.get(<span class="string">&quot;expires_in&quot;</span>, <span class="number">0</span>)) - <span class="number">60</span></span><br><span class="line">        &#125;</span><br><span class="line">        save_json(token_path, token_info)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;[SUCCESS] token 获取成功&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span> token_info[<span class="string">&quot;access_token&quot;</span>]</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        exit_with_error(<span class="string">f&quot;获取 token 失败: <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">auth_headers</span>():</span><br><span class="line">    <span class="keyword">return</span> &#123;</span><br><span class="line">        <span class="string">&quot;client_token&quot;</span>: get_token(<span class="string">&quot;./&quot;</span>),</span><br><span class="line">        <span class="string">&quot;Content-Type&quot;</span>: <span class="string">&quot;application/json&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== Step entries ==================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">step_entries</span>(<span class="params">run_path</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;[STEP] entries&quot;</span>)</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        resp = requests.get(ENTRY_URL, headers=auth_headers(), timeout=<span class="number">10</span>)</span><br><span class="line">        resp.raise_for_status()</span><br><span class="line">        items = resp.json().get(<span class="string">&quot;data&quot;</span>, [])</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> items:</span><br><span class="line">            exit_with_error(<span class="string">&quot;目录数据为空&quot;</span>)</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        update_step_status(run_path, <span class="string">&quot;entries&quot;</span>, <span class="string">&quot;FAILED&quot;</span>)</span><br><span class="line">        exit_with_error(<span class="string">f&quot;获取目录失败: <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    level1 = &#123;&#125;</span><br><span class="line">    entries = []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> it <span class="keyword">in</span> items:</span><br><span class="line">        <span class="keyword">if</span> it.get(<span class="string">&quot;pId&quot;</span>) == ROOT_ENTRY_ID:</span><br><span class="line">            level1[it[<span class="string">&quot;id&quot;</span>]] = it[<span class="string">&quot;text&quot;</span>]</span><br><span class="line">            entries.append(&#123;</span><br><span class="line">                <span class="string">&quot;level&quot;</span>: <span class="number">1</span>,</span><br><span class="line">                <span class="string">&quot;name&quot;</span>: <span class="string">f&quot;<span class="subst">&#123;it[<span class="string">&#x27;text&#x27;</span>]&#125;</span>-*&quot;</span>,</span><br><span class="line">                <span class="string">&quot;entryName&quot;</span>: it[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">                <span class="string">&quot;id&quot;</span>: it[<span class="string">&quot;id&quot;</span>],</span><br><span class="line">                <span class="string">&quot;pId&quot;</span>: ROOT_ENTRY_ID</span><br><span class="line">            &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> it <span class="keyword">in</span> items:</span><br><span class="line">        pid = it.get(<span class="string">&quot;pId&quot;</span>)</span><br><span class="line">        <span class="keyword">if</span> pid <span class="keyword">in</span> level1:</span><br><span class="line">            entries.append(&#123;</span><br><span class="line">                <span class="string">&quot;level&quot;</span>: <span class="number">2</span>,</span><br><span class="line">                <span class="string">&quot;name&quot;</span>: <span class="string">f&quot;<span class="subst">&#123;level1[pid]&#125;</span>-<span class="subst">&#123;it[<span class="string">&#x27;text&#x27;</span>]&#125;</span>&quot;</span>,</span><br><span class="line">                <span class="string">&quot;entryName&quot;</span>: it[<span class="string">&quot;text&quot;</span>],</span><br><span class="line">                <span class="string">&quot;id&quot;</span>: it[<span class="string">&quot;id&quot;</span>],</span><br><span class="line">                <span class="string">&quot;pId&quot;</span>: pid</span><br><span class="line">            &#125;)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> entries:</span><br><span class="line">        update_step_status(run_path, <span class="string">&quot;entries&quot;</span>, <span class="string">&quot;FAILED&quot;</span>)</span><br><span class="line">        exit_with_error(<span class="string">&quot;未解析出任何目录&quot;</span>)</span><br><span class="line"></span><br><span class="line">    save_json(os.path.join(run_path, <span class="string">&quot;entries.json&quot;</span>), entries)</span><br><span class="line">    update_step_status(run_path, <span class="string">&quot;entries&quot;</span>, <span class="string">&quot;SUCCESS&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;[SUCCESS] entries 完成，共 <span class="subst">&#123;<span class="built_in">len</span>(entries)&#125;</span> 条&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== Step role ==================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">step_role</span>(<span class="params">run_path</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;[STEP] role&quot;</span>)</span><br><span class="line">    entries = load_json(os.path.join(run_path, <span class="string">&quot;entries.json&quot;</span>))</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> entries:</span><br><span class="line">        exit_with_error(<span class="string">&quot;缺少 entries.json，无法建角色&quot;</span>)</span><br><span class="line"></span><br><span class="line">    success_path = os.path.join(run_path, <span class="string">&quot;roles_success.json&quot;</span>)</span><br><span class="line">    failed_path = os.path.join(run_path, <span class="string">&quot;roles_failed.json&quot;</span>)</span><br><span class="line"></span><br><span class="line">    done = &#123;r[<span class="string">&quot;name&quot;</span>] <span class="keyword">for</span> r <span class="keyword">in</span> (load_json(success_path) <span class="keyword">or</span> [])&#125;</span><br><span class="line">    payload = [&#123;<span class="string">&quot;name&quot;</span>: e[<span class="string">&quot;name&quot;</span>], <span class="string">&quot;description&quot;</span>: e[<span class="string">&quot;name&quot;</span>]&#125;</span><br><span class="line">               <span class="keyword">for</span> e <span class="keyword">in</span> entries <span class="keyword">if</span> e[<span class="string">&quot;name&quot;</span>] <span class="keyword">not</span> <span class="keyword">in</span> done]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> payload:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;[INFO] 无需创建新角色&quot;</span>)</span><br><span class="line">        update_step_status(run_path, <span class="string">&quot;role&quot;</span>, <span class="string">&quot;SUCCESS&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        resp = requests.post(ROLE_URL, headers=auth_headers(), json=payload, timeout=<span class="number">10</span>)</span><br><span class="line">        resp.raise_for_status()</span><br><span class="line">        results = resp.json().get(<span class="string">&quot;data&quot;</span>, [])</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        update_step_status(run_path, <span class="string">&quot;role&quot;</span>, <span class="string">&quot;FAILED&quot;</span>)</span><br><span class="line">        exit_with_error(<span class="string">f&quot;创建角色失败: <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    success, failed = load_json(success_path) <span class="keyword">or</span> [], load_json(failed_path) <span class="keyword">or</span> []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> req, res <span class="keyword">in</span> <span class="built_in">zip</span>(payload, results):</span><br><span class="line">        <span class="keyword">if</span> res.get(<span class="string">&quot;status&quot;</span>) <span class="keyword">is</span> <span class="literal">True</span>:</span><br><span class="line">            success.append(&#123;</span><br><span class="line">                <span class="string">&quot;name&quot;</span>: req[<span class="string">&quot;name&quot;</span>],</span><br><span class="line">                <span class="string">&quot;roleId&quot;</span>: res[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;id&quot;</span>]</span><br><span class="line">            &#125;)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            failed.append(&#123;</span><br><span class="line">                <span class="string">&quot;name&quot;</span>: req[<span class="string">&quot;name&quot;</span>],</span><br><span class="line">                <span class="string">&quot;error&quot;</span>: res</span><br><span class="line">            &#125;)</span><br><span class="line"></span><br><span class="line">    save_json(success_path, success)</span><br><span class="line">    save_json(failed_path, failed)</span><br><span class="line">    update_step_status(run_path, <span class="string">&quot;role&quot;</span>, <span class="string">&quot;SUCCESS&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;[SUCCESS] role 完成：成功 <span class="subst">&#123;<span class="built_in">len</span>(success)&#125;</span>，<span class="subst">&#123;success&#125;</span>。\n 失败 <span class="subst">&#123;<span class="built_in">len</span>(failed)&#125;</span>，查看runs/date目录。&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== Step auth ==================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">step_auth</span>(<span class="params">run_path</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;[STEP] auth&quot;</span>)</span><br><span class="line">    entries = load_json(os.path.join(run_path, <span class="string">&quot;entries.json&quot;</span>))</span><br><span class="line">    roles = load_json(os.path.join(run_path, <span class="string">&quot;roles_success.json&quot;</span>))</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> entries <span class="keyword">or</span> <span class="keyword">not</span> roles:</span><br><span class="line">        exit_with_error(<span class="string">&quot;缺少 entries.json 或 roles_success.json&quot;</span>)</span><br><span class="line"></span><br><span class="line">    entry_map = &#123;e[<span class="string">&quot;name&quot;</span>]: e <span class="keyword">for</span> e <span class="keyword">in</span> entries&#125;</span><br><span class="line"></span><br><span class="line">    success_path = os.path.join(run_path, <span class="string">&quot;auth_success.json&quot;</span>)</span><br><span class="line">    failed_path = os.path.join(run_path, <span class="string">&quot;auth_failed.json&quot;</span>)</span><br><span class="line"></span><br><span class="line">    done = &#123;(a[<span class="string">&quot;role&quot;</span>], a[<span class="string">&quot;entry&quot;</span>]) <span class="keyword">for</span> a <span class="keyword">in</span> (load_json(success_path) <span class="keyword">or</span> [])&#125;</span><br><span class="line">    success, failed = load_json(success_path) <span class="keyword">or</span> [], load_json(failed_path) <span class="keyword">or</span> []</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> r <span class="keyword">in</span> roles:</span><br><span class="line">        name = r[<span class="string">&quot;name&quot;</span>]</span><br><span class="line">        e = entry_map.get(name)</span><br><span class="line">        <span class="keyword">if</span> <span class="keyword">not</span> e:</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        entry_value = <span class="string">f&quot;<span class="subst">&#123;e[<span class="string">&#x27;pId&#x27;</span>]&#125;</span>@@@<span class="subst">&#123;e[<span class="string">&#x27;entryName&#x27;</span>]&#125;</span>&quot;</span></span><br><span class="line">        key = (name, entry_value)</span><br><span class="line">        <span class="keyword">if</span> key <span class="keyword">in</span> done:</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line"></span><br><span class="line">        payload = [&#123;</span><br><span class="line">            <span class="string">&quot;role&quot;</span>: name,</span><br><span class="line">            <span class="string">&quot;entry&quot;</span>: entry_value,</span><br><span class="line">            <span class="string">&quot;viewPrivilege&quot;</span>: <span class="literal">True</span>,</span><br><span class="line">            <span class="string">&quot;editPrivilege&quot;</span>: <span class="literal">False</span>,</span><br><span class="line">            <span class="string">&quot;empowerPrivilege&quot;</span>: <span class="literal">False</span></span><br><span class="line">        &#125;]</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            resp = requests.post(AUTH_URL, headers=auth_headers(), json=payload, timeout=<span class="number">10</span>)</span><br><span class="line">            resp.raise_for_status()</span><br><span class="line">            res = resp.json()[<span class="string">&quot;data&quot;</span>][<span class="number">0</span>]</span><br><span class="line">            <span class="keyword">if</span> res.get(<span class="string">&quot;status&quot;</span>) <span class="keyword">is</span> <span class="literal">True</span>:</span><br><span class="line">                success.append(&#123;<span class="string">&quot;role&quot;</span>: name, <span class="string">&quot;entry&quot;</span>: entry_value&#125;)</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                failed.append(&#123;<span class="string">&quot;role&quot;</span>: name, <span class="string">&quot;entry&quot;</span>: entry_value, <span class="string">&quot;error&quot;</span>: res&#125;)</span><br><span class="line">        <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">            update_step_status(run_path, <span class="string">&quot;auth&quot;</span>, <span class="string">&quot;FAILED&quot;</span>)</span><br><span class="line">            exit_with_error(<span class="string">f&quot;授权失败: <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    save_json(success_path, success)</span><br><span class="line">    save_json(failed_path, failed)</span><br><span class="line">    update_step_status(run_path, <span class="string">&quot;auth&quot;</span>, <span class="string">&quot;SUCCESS&quot;</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;[SUCCESS] auth 完成：成功 <span class="subst">&#123;<span class="built_in">len</span>(success)&#125;</span>，失败 <span class="subst">&#123;<span class="built_in">len</span>(failed)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ================== main ==================</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">main</span>():</span><br><span class="line">    parser = argparse.ArgumentParser()</span><br><span class="line">    parser.add_argument(<span class="string">&quot;--step&quot;</span>, default=<span class="string">&quot;all&quot;</span>, choices=[<span class="string">&quot;all&quot;</span>, <span class="string">&quot;entries&quot;</span>, <span class="string">&quot;role&quot;</span>, <span class="string">&quot;auth&quot;</span>])</span><br><span class="line">    parser.add_argument(<span class="string">&quot;--run&quot;</span>, default=<span class="literal">None</span>)</span><br><span class="line">    args = parser.parse_args()</span><br><span class="line"></span><br><span class="line">    rid, run_path = resolve_run(args.run)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;[RUN] <span class="subst">&#123;rid&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> args.step <span class="keyword">in</span> (<span class="string">&quot;all&quot;</span>, <span class="string">&quot;entries&quot;</span>):</span><br><span class="line">        step_entries(run_path)</span><br><span class="line">    <span class="keyword">if</span> args.step <span class="keyword">in</span> (<span class="string">&quot;all&quot;</span>, <span class="string">&quot;role&quot;</span>):</span><br><span class="line">        step_role(run_path)</span><br><span class="line">    <span class="keyword">if</span> args.step <span class="keyword">in</span> (<span class="string">&quot;all&quot;</span>, <span class="string">&quot;auth&quot;</span>):</span><br><span class="line">        step_auth(run_path)</span><br><span class="line"></span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\n🎉 执行完成&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    main()</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://help.fanruan.com/finereport/">帆软报表官方文档</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="tag"># 自动化</a>
+              <a href="/tags/FR/" rel="tag"># FR</a>
+              <a href="/tags/%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8/" rel="tag"># 帆软报表</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/05-%E9%9A%8F%E7%AC%94/01-%E7%9F%AD%E5%8F%A5/%E7%9F%AD%E5%8F%A5%E7%A7%AF%E7%B4%AF/" rel="prev" title="短句积累">
+                  <i class="fa fa-angle-left"></i> 短句积累
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/06-FR/FineReport%20%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4%EF%BC%9A%E8%87%AA%E5%8A%A8%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%92%8C%E5%88%86%E9%85%8D%E8%A7%92%E8%89%B2%E8%84%9A%E6%9C%AC%E5%8C%96/" rel="next" title="FineReport 帆软报表系统运维实践（二）：创建用户与角色分配的脚本化自动运维">
+                  FineReport 帆软报表系统运维实践（二）：创建用户与角色分配的脚本化自动运维 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">27k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">1:38</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
