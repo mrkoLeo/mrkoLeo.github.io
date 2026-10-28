@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 7.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"mrkoleo.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null,"show_result":true},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":true,"color":"#222","save":"auto"},"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":false,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="本文结合制造企业 MES 系统实际部署场景，介绍基于 Jenkins Pipeline 的自动化构建与发布实践。 通过整合 Gitea、Maven、Node.js、npm 与 Tomcat，实现前后端并行构建、依赖缓存、环境配置隔离、定时部署、生产双节点顺序发布、应用健康检查及失败回滚，减少人工操作，提高软件交付的标准化程度与可追踪性。 同时分析现有方案在健康检查和双节点整体回滚方面的局限，为后">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Jenkins 实战：MES 系统自动化构建、部署与故障回滚">
+<meta property="og:url" content="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/05-jenkins/Jenkins%E5%AE%9E%E6%88%98%EF%BC%9AMES%E7%B3%BB%E7%BB%9F%E8%87%AA%E5%8A%A8%E5%8C%96%E6%9E%84%E5%BB%BA%E3%80%81%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%95%85%E9%9A%9C%E5%9B%9E%E6%BB%9A/index.html">
+<meta property="og:site_name" content="Mrko博客">
+<meta property="og:description" content="本文结合制造企业 MES 系统实际部署场景，介绍基于 Jenkins Pipeline 的自动化构建与发布实践。 通过整合 Gitea、Maven、Node.js、npm 与 Tomcat，实现前后端并行构建、依赖缓存、环境配置隔离、定时部署、生产双节点顺序发布、应用健康检查及失败回滚，减少人工操作，提高软件交付的标准化程度与可追踪性。 同时分析现有方案在健康检查和双节点整体回滚方面的局限，为后">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-26T07:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-28T08:50:45.830Z">
+<meta property="article:author" content="mrko">
+<meta property="article:tag" content="Gitea">
+<meta property="article:tag" content="Maven">
+<meta property="article:tag" content="Jenkins">
+<meta property="article:tag" content="CI&#x2F;CD">
+<meta property="article:tag" content="MES">
+<meta property="article:tag" content="Vue">
+<meta property="article:tag" content="自动化部署">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/05-jenkins/Jenkins%E5%AE%9E%E6%88%98%EF%BC%9AMES%E7%B3%BB%E7%BB%9F%E8%87%AA%E5%8A%A8%E5%8C%96%E6%9E%84%E5%BB%BA%E3%80%81%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%95%85%E9%9A%9C%E5%9B%9E%E6%BB%9A/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/05-jenkins/Jenkins%E5%AE%9E%E6%88%98%EF%BC%9AMES%E7%B3%BB%E7%BB%9F%E8%87%AA%E5%8A%A8%E5%8C%96%E6%9E%84%E5%BB%BA%E3%80%81%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%95%85%E9%9A%9C%E5%9B%9E%E6%BB%9A/","path":"03-工具/05-jenkins/Jenkins实战：MES系统自动化构建、部署与故障回滚/","title":"Jenkins 实战：MES 系统自动化构建、部署与故障回滚"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Jenkins 实战：MES 系统自动化构建、部署与故障回滚 | Mrko博客</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1HRPRNM7Y6"></script>
+  <script class="next-config" data-name="google_analytics" type="application/json">{"tracking_id":"G-1HRPRNM7Y6","only_pageview":false,"measure_protocol_api_secret":null}</script>
+  <script src="/js/third-party/analytics/google-analytics.js" defer></script>
+
+  <script src="/js/third-party/analytics/baidu-analytics.js" defer></script>
+  <script async src="https://hm.baidu.com/hm.js?2f98d96a0320a02b7517d03bcf4b21e5"></script>
+
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{&quot;token&quot;: &quot;78aa781d735c48d3a26aa2fd4e34cb97&quot;}'></script>
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/medium-zoom/1.1.0/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/7.2.0/pangu.umd.js" integrity="sha256-JnmRRnJK7DC6RQJbAJb6AXOM9OmWzS6z8eYultk/48Y=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script><script src="/js/bookmark.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Mrko博客</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录成长，分享经验</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder fa-fw"></i>分类</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%A1%B9%E7%9B%AE%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">一、项目背景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E9%A1%B9%E7%9B%AE%E5%BB%BA%E8%AE%BE%E8%83%8C%E6%99%AF"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 项目建设背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-%E9%A1%B9%E7%9B%AE%E5%BB%BA%E8%AE%BE%E7%9B%AE%E6%A0%87"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 项目建设目标</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">二、遇到的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%BA%BA%E5%B7%A5%E6%9E%84%E5%BB%BA%E4%B8%8E%E5%8F%91%E5%B8%83%E6%AD%A5%E9%AA%A4%E7%B9%81%E7%90%90"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 人工构建与发布步骤繁琐</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%89%8D%E5%90%8E%E7%AB%AF%E6%9E%84%E5%BB%BA%E8%80%97%E6%97%B6%E8%BE%83%E9%95%BF"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 前后端构建耗时较长</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E5%A4%9A%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE%E5%AE%B9%E6%98%93%E6%B7%B7%E6%B7%86"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 多环境配置容易混淆</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E7%94%9F%E4%BA%A7%E5%8F%8C%E8%8A%82%E7%82%B9%E5%8F%91%E5%B8%83%E5%AD%98%E5%9C%A8%E9%A3%8E%E9%99%A9"><span class="nav-number">2.4.</span> <span class="nav-text">2.4 生产双节点发布存在风险</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-Tomcat-%E5%90%AF%E5%8A%A8%E6%88%90%E5%8A%9F%E4%B8%8D%E4%BB%A3%E8%A1%A8%E5%BA%94%E7%94%A8%E6%AD%A3%E5%B8%B8"><span class="nav-number">2.5.</span> <span class="nav-text">2.5 Tomcat 启动成功不代表应用正常</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-%E9%83%A8%E7%BD%B2%E5%A4%B1%E8%B4%A5%E5%90%8E%E7%9A%84%E6%81%A2%E5%A4%8D%E6%93%8D%E4%BD%9C%E5%A4%8D%E6%9D%82"><span class="nav-number">2.6.</span> <span class="nav-text">2.6 部署失败后的恢复操作复杂</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E9%97%AE%E9%A2%98%E5%88%86%E6%9E%90"><span class="nav-number">3.</span> <span class="nav-text">三、问题分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%9E%84%E5%BB%BA%E6%B5%81%E7%A8%8B%E7%BC%BA%E4%B9%8F%E7%BB%9F%E4%B8%80%E7%BC%96%E6%8E%92"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 构建流程缺乏统一编排</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%BE%9D%E8%B5%96%E7%BC%93%E5%AD%98%E9%9C%80%E8%A6%81%E5%85%BC%E9%A1%BE%E9%80%9F%E5%BA%A6%E4%B8%8E%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 依赖缓存需要兼顾速度与一致性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E7%8E%AF%E5%A2%83%E9%9A%94%E7%A6%BB%E5%BA%94%E5%9C%A8%E5%8F%91%E5%B8%83%E5%8C%85%E9%98%B6%E6%AE%B5%E5%AE%8C%E6%88%90"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 环境隔离应在发布包阶段完成</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E9%83%A8%E7%BD%B2%E5%AE%89%E5%85%A8%E9%9C%80%E8%A6%81%E5%A4%9A%E5%B1%82%E6%A3%80%E6%9F%A5"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 部署安全需要多层检查</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">4.</span> <span class="nav-text">四、解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E6%95%B4%E4%BD%93%E6%8A%80%E6%9C%AF%E6%9E%B6%E6%9E%84"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 整体技术架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AE%BE%E8%AE%A1"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 自动化流水线设计</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E8%AF%A6%E7%BB%86%E5%AE%9E%E6%96%BD%E6%95%99%E7%A8%8B"><span class="nav-number">5.</span> <span class="nav-text">五、详细实施教程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E5%87%86%E5%A4%87-Jenkins-%E6%9E%84%E5%BB%BA%E7%8E%AF%E5%A2%83"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 第一步：准备 Jenkins 构建环境</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E9%85%8D%E7%BD%AE-Git-%E4%BB%93%E5%BA%93%E4%B8%8E%E8%AE%A4%E8%AF%81%E5%87%AD%E6%8D%AE"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 第二步：配置 Git 仓库与认证凭据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E8%AE%BE%E8%AE%A1%E5%8F%82%E6%95%B0%E5%8C%96%E6%9E%84%E5%BB%BA"><span class="nav-number">5.3.</span> <span class="nav-text">5.3 第三步：设计参数化构建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-4-%E7%AC%AC%E5%9B%9B%E6%AD%A5%EF%BC%9A%E5%AE%9E%E7%8E%B0%E5%89%8D%E7%AB%AF%E8%87%AA%E5%8A%A8%E6%9E%84%E5%BB%BA"><span class="nav-number">5.4.</span> <span class="nav-text">5.4 第四步：实现前端自动构建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-%E7%AC%AC%E4%BA%94%E6%AD%A5%EF%BC%9A%E5%AE%9E%E7%8E%B0%E5%90%8E%E7%AB%AF%E8%87%AA%E5%8A%A8%E6%9E%84%E5%BB%BA"><span class="nav-number">5.5.</span> <span class="nav-text">5.5 第五步：实现后端自动构建</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-6-%E7%AC%AC%E5%85%AD%E6%AD%A5%EF%BC%9A%E5%90%88%E5%B9%B6%E5%89%8D%E5%90%8E%E7%AB%AF%E5%B9%B6%E8%A6%86%E7%9B%96%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE"><span class="nav-number">5.6.</span> <span class="nav-text">5.6 第六步：合并前后端并覆盖环境配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-7-%E7%AC%AC%E4%B8%83%E6%AD%A5%EF%BC%9A%E7%94%9F%E6%88%90%E7%8E%AF%E5%A2%83%E4%B8%93%E7%94%A8%E5%8F%91%E5%B8%83%E5%8C%85"><span class="nav-number">5.7.</span> <span class="nav-text">5.7 第七步：生成环境专用发布包</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-8-%E7%AC%AC%E5%85%AB%E6%AD%A5%EF%BC%9A%E9%85%8D%E7%BD%AE%E7%AB%8B%E5%8D%B3%E9%83%A8%E7%BD%B2%E4%B8%8E%E5%AE%9A%E6%97%B6%E9%83%A8%E7%BD%B2"><span class="nav-number">5.8.</span> <span class="nav-text">5.8 第八步：配置立即部署与定时部署</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-9-%E7%AC%AC%E4%B9%9D%E6%AD%A5%EF%BC%9A%E4%B8%8A%E4%BC%A0%E5%8F%91%E5%B8%83%E5%8C%85%E5%B9%B6%E8%BF%9C%E7%A8%8B%E9%83%A8%E7%BD%B2"><span class="nav-number">5.9.</span> <span class="nav-text">5.9 第九步：上传发布包并远程部署</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-10-%E7%AC%AC%E5%8D%81%E6%AD%A5%EF%BC%9A%E5%81%9C%E6%AD%A2-Tomcat-%E5%B9%B6%E5%A4%87%E4%BB%BD%E5%BD%93%E5%89%8D%E7%89%88%E6%9C%AC"><span class="nav-number">5.10.</span> <span class="nav-text">5.10 第十步：停止 Tomcat 并备份当前版本</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-11-%E7%AC%AC%E5%8D%81%E4%B8%80%E6%AD%A5%EF%BC%9A%E9%83%A8%E7%BD%B2%E6%96%B0%E7%89%88%E6%9C%AC%E5%B9%B6%E6%89%A7%E8%A1%8C%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5"><span class="nav-number">5.11.</span> <span class="nav-text">5.11 第十一步：部署新版本并执行健康检查</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-12-%E7%AC%AC%E5%8D%81%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%AE%9E%E7%8E%B0%E5%A4%B1%E8%B4%A5%E5%9B%9E%E6%BB%9A"><span class="nav-number">5.12.</span> <span class="nav-text">5.12 第十二步：实现失败回滚</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-13-%E7%AC%AC%E5%8D%81%E4%B8%89%E6%AD%A5%EF%BC%9A%E5%AE%9E%E7%8E%B0%E7%94%9F%E4%BA%A7%E5%8F%8C%E8%8A%82%E7%82%B9%E9%A1%BA%E5%BA%8F%E9%83%A8%E7%BD%B2"><span class="nav-number">5.13.</span> <span class="nav-text">5.13 第十三步：实现生产双节点顺序部署</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-14-%E7%AC%AC%E5%8D%81%E5%9B%9B%E6%AD%A5%EF%BC%9A%E6%9F%A5%E7%9C%8B-Jenkins-%E6%9E%84%E5%BB%BA%E7%BB%93%E6%9E%9C"><span class="nav-number">5.14.</span> <span class="nav-text">5.14 第十四步：查看 Jenkins 构建结果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81%E5%AE%9E%E6%96%BD%E6%88%90%E6%9E%9C%E4%B8%8E%E6%94%B6%E7%9B%8A"><span class="nav-number">6.</span> <span class="nav-text">六、实施成果与收益</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E5%BB%BA%E7%AB%8B%E7%BB%9F%E4%B8%80%E7%9A%84%E8%87%AA%E5%8A%A8%E5%8C%96%E4%BA%A4%E4%BB%98%E6%B5%81%E7%A8%8B"><span class="nav-number">6.1.</span> <span class="nav-text">6.1 建立统一的自动化交付流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E6%8F%90%E5%8D%87%E6%9E%84%E5%BB%BA%E6%95%88%E7%8E%87"><span class="nav-number">6.2.</span> <span class="nav-text">6.2 提升构建效率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E9%99%8D%E4%BD%8E%E5%A4%9A%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE%E6%B7%B7%E7%94%A8%E9%A3%8E%E9%99%A9"><span class="nav-number">6.3.</span> <span class="nav-text">6.3 降低多环境配置混用风险</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E6%8F%90%E5%8D%87%E7%94%9F%E4%BA%A7%E5%8F%91%E5%B8%83%E7%9A%84%E5%8F%AF%E6%8E%A7%E6%80%A7"><span class="nav-number">6.4.</span> <span class="nav-text">6.4 提升生产发布的可控性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-5-%E5%A2%9E%E5%BC%BA%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E8%83%BD%E5%8A%9B"><span class="nav-number">6.5.</span> <span class="nav-text">6.5 增强故障恢复能力</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-6-%E4%B8%BA%E5%90%8E%E7%BB%AD%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%98%E4%BC%98%E5%8C%96%E5%A5%A0%E5%AE%9A%E5%9F%BA%E7%A1%80"><span class="nav-number">6.6.</span> <span class="nav-text">6.6 为后续持续交付优化奠定基础</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%83%E3%80%81%E6%80%BB%E7%BB%93"><span class="nav-number">7.</span> <span class="nav-text">七、总结</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="mrko"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">mrko</p>
+  <div class="site-description" itemprop="description">记录成长，分享经验。</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">41</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/mrkoLeo" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;mrkoLeo" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i></a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:mrko0630@gmail.com" title="Email → mailto:mrko0630@gmail.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i></a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://mrkoleo.github.io/03-%E5%B7%A5%E5%85%B7/05-jenkins/Jenkins%E5%AE%9E%E6%88%98%EF%BC%9AMES%E7%B3%BB%E7%BB%9F%E8%87%AA%E5%8A%A8%E5%8C%96%E6%9E%84%E5%BB%BA%E3%80%81%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%95%85%E9%9A%9C%E5%9B%9E%E6%BB%9A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="mrko">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Mrko博客">
+      <meta itemprop="description" content="记录成长，分享经验。">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Jenkins 实战：MES 系统自动化构建、部署与故障回滚 | Mrko博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Jenkins 实战：MES 系统自动化构建、部署与故障回滚
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2026-09-26 15:00:00" itemprop="dateCreated datePublished" datetime="2026-09-26T15:00:00+08:00">2026-09-26</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/" itemprop="url" rel="index"><span itemprop="name">03-工具</span></a>
+        </span>
+          ，
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/03-%E5%B7%A5%E5%85%B7/05-jenkins/" itemprop="url" rel="index"><span itemprop="name">05-jenkins</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.4k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>23 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><blockquote>
+<p>本文结合制造企业 MES 系统实际部署场景，介绍基于 Jenkins Pipeline 的自动化构建与发布实践。</p>
+<p>通过整合 Gitea、Maven、Node.js、npm 与 Tomcat，实现前后端并行构建、依赖缓存、环境配置隔离、定时部署、生产双节点顺序发布、应用健康检查及失败回滚，减少人工操作，提高软件交付的标准化程度与可追踪性。</p>
+<p>同时分析现有方案在健康检查和双节点整体回滚方面的局限，为后续持续交付体系建设提供参考。</p>
+</blockquote>
+<span id="more"></span>
+
+<h2 id="一、项目背景"><a href="#一、项目背景" class="headerlink" title="一、项目背景"></a>一、项目背景</h2><h3 id="1-1-项目建设背景"><a href="#1-1-项目建设背景" class="headerlink" title="1.1 项目建设背景"></a>1.1 项目建设背景</h3><p>随着制造企业数字化建设不断深入，MES 系统已成为生产业务的重要支撑系统。随着系统功能持续迭代，开发人员需要频繁进行代码更新、前后端构建、发布包制作及服务器部署。</p>
+<p>传统的软件发布流程通常涉及多个环节，包括 Git 代码拉取、前端依赖安装、Vue 项目打包、Java 后端编译、前后端文件合并、环境配置替换、发布包上传以及 Tomcat 重启等。</p>
+<p>这些操作如果主要依赖人工执行，不仅步骤较多，而且容易受到操作习惯、环境差异和人为疏忽的影响。</p>
+<p>因此，本项目以 Jenkins 为自动化执行平台，结合内部 Gitea 代码仓库、Maven、Node.js、npm 和 Linux 服务器，建设 MES 系统自动化构建与部署流程。</p>
+<h3 id="1-2-项目建设目标"><a href="#1-2-项目建设目标" class="headerlink" title="1.2 项目建设目标"></a>1.2 项目建设目标</h3><p>本项目主要围绕以下目标开展建设：</p>
+<ol>
+<li><strong>自动化构建：</strong> 自动拉取前后端代码，分别执行 Vue 前端构建和 Java 后端编译。</li>
+<li><strong>统一发布流程：</strong> 将前后端合并、环境配置覆盖、压缩打包和文件上传纳入统一流水线。</li>
+<li><strong>多环境支持：</strong> 支持测试环境、单节点生产环境以及生产双节点部署。</li>
+<li><strong>定时发布：</strong> 支持指定部署时间，在构建完成后等待至计划时间再执行部署。</li>
+<li><strong>发布安全控制：</strong> 部署前检查环境、文件、Java 和 Tomcat 配置，部署后执行健康检查。</li>
+<li><strong>故障恢复：</strong> 部署失败时自动尝试恢复历史版本，并对回滚后的系统进行健康检查。</li>
+<li><strong>过程可追踪：</strong> 通过 Jenkins 控制台日志、构建结果和阶段耗时记录，便于定位问题和复盘。</li>
+</ol>
+<h2 id="二、遇到的问题"><a href="#二、遇到的问题" class="headerlink" title="二、遇到的问题"></a>二、遇到的问题</h2><h3 id="2-1-人工构建与发布步骤繁琐"><a href="#2-1-人工构建与发布步骤繁琐" class="headerlink" title="2.1 人工构建与发布步骤繁琐"></a>2.1 人工构建与发布步骤繁琐</h3><p>MES 系统由 Java 后端和 Vue 前端组成，两部分需要分别构建，最终还需要合并为可部署的应用目录。</p>
+<p>完整流程涉及代码检出、npm 依赖安装、前端编译、Maven 打包、WAR 解压、前端文件复制、环境配置覆盖以及 ZIP 发布包生成。</p>
+<p>如果每次发布都需要人工逐项执行，操作流程较长，容易出现遗漏步骤、文件覆盖错误或者发布包内容不一致等问题。</p>
+<h3 id="2-2-前后端构建耗时较长"><a href="#2-2-前后端构建耗时较长" class="headerlink" title="2.2 前后端构建耗时较长"></a>2.2 前后端构建耗时较长</h3><p>前端项目依赖较多，每次重新安装 npm 依赖都会产生额外耗时。</p>
+<p>同时，前端和后端如果采用串行构建，整体等待时间还会进一步增加。</p>
+<p>因此，需要在保证依赖一致性的基础上，优化依赖安装流程，并尽可能利用前后端之间相互独立的特点执行并行构建。</p>
+<h3 id="2-3-多环境配置容易混淆"><a href="#2-3-多环境配置容易混淆" class="headerlink" title="2.3 多环境配置容易混淆"></a>2.3 多环境配置容易混淆</h3><p>MES 系统需要部署至不同环境，各环境可能使用不同的数据库连接、应用参数、日志配置和其他运行配置。</p>
+<p>如果直接使用同一个发布包部署所有环境，就可能出现测试配置进入生产环境的问题。</p>
+<p>因此，需要建立明确的环境配置目录映射，并在发布包生成阶段完成配置覆盖，确保不同环境使用各自的配置文件。</p>
+<h3 id="2-4-生产双节点发布存在风险"><a href="#2-4-生产双节点发布存在风险" class="headerlink" title="2.4 生产双节点发布存在风险"></a>2.4 生产双节点发布存在风险</h3><p>生产环境包含 172.16.xx.102 和 172.16.xx.101 两个节点。</p>
+<p>如果两个节点同时部署，一旦出现构建包异常、应用启动失败或配置错误，可能导致两个节点同时受到影响。</p>
+<p>因此，需要控制部署顺序，先部署 102 节点，待健康检查通过后，再继续部署 101 节点。</p>
+<h3 id="2-5-Tomcat-启动成功不代表应用正常"><a href="#2-5-Tomcat-启动成功不代表应用正常" class="headerlink" title="2.5 Tomcat 启动成功不代表应用正常"></a>2.5 Tomcat 启动成功不代表应用正常</h3><p>Tomcat 进程启动成功，只能说明 Java 容器已经运行，并不一定代表 MES 应用已经能够正常提供服务。</p>
+<p>例如：</p>
+<ul>
+<li>Spring 应用启动失败。</li>
+<li>应用使用了错误的 Java 运行环境。</li>
+<li>前端入口文件无法正常访问。</li>
+<li>登录接口出现 404。</li>
+<li>应用启动过程中出现 Bean 注册冲突。</li>
+</ul>
+<p>因此，部署完成后需要进一步验证端口、Java 路径、HTTP 响应和关键日志，而不能仅依赖 Tomcat 进程状态判断部署结果。</p>
+<h3 id="2-6-部署失败后的恢复操作复杂"><a href="#2-6-部署失败后的恢复操作复杂" class="headerlink" title="2.6 部署失败后的恢复操作复杂"></a>2.6 部署失败后的恢复操作复杂</h3><p>如果新版本部署后无法正常运行，需要及时恢复旧版本。</p>
+<p>人工恢复通常需要停止 Tomcat、处理新版本目录、恢复旧版本文件、重新启动服务并检查应用状态。</p>
+<p>这一过程不仅耗时，而且在生产故障场景下容易因操作遗漏扩大影响。</p>
+<p>因此，需要将备份、失败检测和回滚流程纳入自动化部署脚本。</p>
+<h2 id="三、问题分析"><a href="#三、问题分析" class="headerlink" title="三、问题分析"></a>三、问题分析</h2><h3 id="3-1-构建流程缺乏统一编排"><a href="#3-1-构建流程缺乏统一编排" class="headerlink" title="3.1 构建流程缺乏统一编排"></a>3.1 构建流程缺乏统一编排</h3><p>前端、后端、配置覆盖和发布操作相互关联，但并非所有步骤都需要串行执行。</p>
+<p>通过 Jenkins Pipeline，可以将整个交付过程拆分为多个阶段，并为每个阶段定义明确的输入、输出和失败条件。</p>
+<p>其中，前端和后端可以并行构建；发布包生成则必须等待两部分构建完成。</p>
+<h3 id="3-2-依赖缓存需要兼顾速度与一致性"><a href="#3-2-依赖缓存需要兼顾速度与一致性" class="headerlink" title="3.2 依赖缓存需要兼顾速度与一致性"></a>3.2 依赖缓存需要兼顾速度与一致性</h3><p>npm 依赖缓存虽然能够减少重复安装，但不能简单地认为缓存目录存在就可以直接使用。</p>
+<p>如果项目依赖发生变化，继续使用旧的 <code>node_modules</code> 可能导致构建结果异常。</p>
+<p>因此，本项目通过计算 <code>package-lock.json</code> 的 SHA256 值判断依赖锁文件是否变化：</p>
+<ul>
+<li>缓存目录存在且 SHA256 一致：恢复 <code>node_modules</code> 缓存。</li>
+<li>缓存不存在或 SHA256 不一致：执行 <code>npm ci</code>。</li>
+<li>安装完成后：更新缓存及对应的 SHA256 记录。</li>
+</ul>
+<p>这种方式能够减少重复安装依赖的开销，同时以依赖锁文件作为缓存有效性的判断依据。</p>
+<p>需要注意，锁文件哈希一致并不代表所有运行环境都完全一致；Node.js 版本、操作系统和原生依赖等因素仍需要保持兼容。</p>
+<h3 id="3-3-环境隔离应在发布包阶段完成"><a href="#3-3-环境隔离应在发布包阶段完成" class="headerlink" title="3.3 环境隔离应在发布包阶段完成"></a>3.3 环境隔离应在发布包阶段完成</h3><p>本项目采用环境配置目录映射方式，将环境差异控制在发布包生成阶段。</p>
+<table>
+<thead>
+<tr>
+<th>部署环境</th>
+<th>配置目录</th>
+<th>发布包</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TEST-131</td>
+<td><code>config/131</code></td>
+<td><code>N131.mes200.zip</code></td>
+</tr>
+<tr>
+<td>PROD-102</td>
+<td><code>config/102</code></td>
+<td><code>N102.mes200.zip</code></td>
+</tr>
+<tr>
+<td>PROD-101</td>
+<td><code>config/101</code></td>
+<td><code>N101.mes200.zip</code></td>
+</tr>
+<tr>
+<td>PROD-ALL</td>
+<td>分别使用 102、101 配置</td>
+<td>同时生成两个发布包</td>
+</tr>
+</tbody></table>
+<p>流水线先构建基础应用，再将对应环境目录中的文件复制至 <code>WEB-INF/classes/</code>，覆盖同名配置文件，最后分别生成发布包。</p>
+<p>这样可以避免在部署过程中临时修改发布包内部配置，降低不同环境之间的配置混用风险。</p>
+<h3 id="3-4-部署安全需要多层检查"><a href="#3-4-部署安全需要多层检查" class="headerlink" title="3.4 部署安全需要多层检查"></a>3.4 部署安全需要多层检查</h3><p>部署安全不能仅依赖 Jenkins 最终的 SUCCESS 或 FAILURE 状态。</p>
+<p>本项目将检查分为多个层次：</p>
+<ol>
+<li><strong>部署前检查：</strong> 验证 Java、Tomcat 脚本、Webapps 目录和发布包。</li>
+<li><strong>停止服务检查：</strong> 尝试正常停止 Tomcat，必要时逐级强制终止进程。</li>
+<li><strong>备份检查：</strong> 保存当前版本，并保留原有备份的历史副本。</li>
+<li><strong>部署文件检查：</strong> 确认新版本包含必要的前端和后端配置文件。</li>
+<li><strong>启动检查：</strong> 检查 8080 端口监听、Tomcat PID 和实际 Java 路径。</li>
+<li><strong>应用检查：</strong> 检查前端入口 HTTP 状态、Spring 启动日志和登录接口。</li>
+<li><strong>失败恢复：</strong> 尝试恢复备份，并重新执行完整健康检查。</li>
+</ol>
+<p>需要说明，当前 Jenkinsfile 中登录接口返回非 404 的情况仍可能被记录为 WARNING，而不是全部判定为部署失败。因此，健康检查仍有进一步细化的空间。</p>
+<h2 id="四、解决方案"><a href="#四、解决方案" class="headerlink" title="四、解决方案"></a>四、解决方案</h2><h3 id="4-1-整体技术架构"><a href="#4-1-整体技术架构" class="headerlink" title="4.1 整体技术架构"></a>4.1 整体技术架构</h3><p>本项目采用 Jenkins 作为自动化交付中心，以 Gitea 存储代码，通过 Maven 和 npm 完成前后端构建，最终通过 SSH 和 SCP 将发布包传输至目标服务器。</p>
+<p>主要技术组件如下：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Jenkins Pipeline</td>
+<td>编排构建、打包、部署和回滚流程</td>
+</tr>
+<tr>
+<td>Gitea</td>
+<td>管理 Java 后端与 Vue 前端代码</td>
+</tr>
+<tr>
+<td>Git</td>
+<td>拉取指定分支代码</td>
+</tr>
+<tr>
+<td>Maven</td>
+<td>编译 Java 后端并生成 WAR</td>
+</tr>
+<tr>
+<td>Node.js &#x2F; npm</td>
+<td>安装前端依赖并构建 Vue 项目</td>
+</tr>
+<tr>
+<td>ZIP</td>
+<td>生成统一发布包</td>
+</tr>
+<tr>
+<td>SSH &#x2F; SCP</td>
+<td>远程执行部署脚本及上传发布文件</td>
+</tr>
+<tr>
+<td>Tomcat</td>
+<td>运行 MES Web 应用</td>
+</tr>
+<tr>
+<td>Shell</td>
+<td>执行远程部署、健康检查和回滚</td>
+</tr>
+</tbody></table>
+<h3 id="4-2-自动化流水线设计"><a href="#4-2-自动化流水线设计" class="headerlink" title="4.2 自动化流水线设计"></a>4.2 自动化流水线设计</h3><p>整体流程如下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">选择构建参数</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">检查构建参数</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">检出 Java / Vue 代码</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">前后端并行构建</span><br><span class="line">   /         \</span><br><span class="line">  v           v</span><br><span class="line">Vue 构建    Maven 构建</span><br><span class="line">   \         /</span><br><span class="line">      v</span><br><span class="line">  合并前后端</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">按环境生成发布包</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">是否定时部署？</span><br><span class="line">   /         \</span><br><span class="line">  是          否</span><br><span class="line">  |           |</span><br><span class="line">等待指定时间   立即进入部署</span><br><span class="line">   \         /</span><br><span class="line">      v</span><br><span class="line">上传发布包</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">停止 Tomcat 并备份</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">部署新版本并启动</span><br><span class="line">      |</span><br><span class="line">      v</span><br><span class="line">执行健康检查</span><br><span class="line">   /         \</span><br><span class="line">  成功        失败</span><br><span class="line">  |            |</span><br><span class="line">部署完成      自动尝试回滚</span><br><span class="line">               |</span><br><span class="line">          检查恢复结果</span><br></pre></td></tr></table></figure>
+
+<p>对于 <code>PROD-ALL</code>，流水线额外控制节点部署顺序：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">部署 172.16.xx.102</span><br><span class="line">        |</span><br><span class="line">        v</span><br><span class="line">健康检查通过？</span><br><span class="line">   /         \</span><br><span class="line">  否          是</span><br><span class="line">  |            |</span><br><span class="line">终止流程      部署 172.16.xx.101</span><br><span class="line">               |</span><br><span class="line">               v</span><br><span class="line">           健康检查</span><br><span class="line">               |</span><br><span class="line">          成功 / 失败</span><br></pre></td></tr></table></figure>
+
+<p>上述流程描述的是当前 Jenkinsfile 的设计逻辑。生产双节点的整体恢复策略还需要单独验证，不能将单节点自动回滚等同于双节点事务性回滚。</p>
+<h2 id="五、详细实施教程"><a href="#五、详细实施教程" class="headerlink" title="五、详细实施教程"></a>五、详细实施教程</h2><h3 id="5-1-第一步：准备-Jenkins-构建环境"><a href="#5-1-第一步：准备-Jenkins-构建环境" class="headerlink" title="5.1 第一步：准备 Jenkins 构建环境"></a>5.1 第一步：准备 Jenkins 构建环境</h3><p>本项目的 Jenkins 部署在 Linux 服务器上，使用独立目录管理 Jenkins、JDK 和 Maven。</p>
+<p>当前构建环境的主要配置如下：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Jenkins 主机</td>
+<td>IT-GIT</td>
+</tr>
+<tr>
+<td>操作系统</td>
+<td>RHEL 8.4</td>
+</tr>
+<tr>
+<td>Jenkins 版本</td>
+<td>2.568.3</td>
+</tr>
+<tr>
+<td>构建机 Java</td>
+<td><code>/usr/lib/jvm/java-11-openjdk-11.0.25.0.9-2.el8.x86_64</code></td>
+</tr>
+<tr>
+<td>Maven</td>
+<td><code>/jenkins/maven/apache-maven-3.9.9</code></td>
+</tr>
+<tr>
+<td>前端 Node.js</td>
+<td>v16.13</td>
+</tr>
+<tr>
+<td>前端 npm</td>
+<td>8.1</td>
+</tr>
+<tr>
+<td>内部 Gitea</td>
+<td><code>172.16.xx.161</code></td>
+</tr>
+<tr>
+<td>npm 私服</td>
+<td><code>http://172.16.xx.161:8181/repository/npm-group/</code></td>
+</tr>
+</tbody></table>
+<p>这里需要区分两个概念：</p>
+<ul>
+<li><strong>构建机 Java：</strong> 用于 Maven 编译项目。</li>
+<li><strong>目标服务器 Java：</strong> 用于运行部署后的 Tomcat。</li>
+</ul>
+<p>两者可以使用不同的安装路径，因此需要分别配置和检查。</p>
+<h3 id="5-2-第二步：配置-Git-仓库与认证凭据"><a href="#5-2-第二步：配置-Git-仓库与认证凭据" class="headerlink" title="5.2 第二步：配置 Git 仓库与认证凭据"></a>5.2 第二步：配置 Git 仓库与认证凭据</h3><p>本项目的前后端代码分别存储在 Gitea 中：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">MES/MES_JAVA_PINWEI.git</span><br><span class="line">MES/MES_VUE_PINWEI.git</span><br></pre></td></tr></table></figure>
+
+<p>流水线通过 SSH 方式拉取代码，并使用 Jenkins 中配置的 <code>gitea-ssh</code> 凭据进行认证。</p>
+<p>示例代码：</p>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">sshagent(<span class="attr">credentials:</span> [<span class="string">&#x27;gitea-ssh&#x27;</span>]) &#123;</span><br><span class="line">    sh <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">        set -e</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        rm -rf java frontend package</span></span><br><span class="line"><span class="string">        mkdir -p package</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        git clone \</span></span><br><span class="line"><span class="string">            --branch $&#123;BRANCH&#125; \</span></span><br><span class="line"><span class="string">            git@$&#123;GITEA_HOST&#125;:$&#123;JAVA_REPO&#125; \</span></span><br><span class="line"><span class="string">            java</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">        git clone \</span></span><br><span class="line"><span class="string">            --branch $&#123;BRANCH&#125; \</span></span><br><span class="line"><span class="string">            git@$&#123;GITEA_HOST&#125;:$&#123;VUE_REPO&#125; \</span></span><br><span class="line"><span class="string">            frontend</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里将 Java 和 Vue 项目分别检出到 <code>java</code> 和 <code>frontend</code> 目录，方便后续独立构建。</p>
+<p>实际配置时，需要确保 Jenkins 凭据名称与 Jenkinsfile 中的名称一致，并确认 Jenkins 执行用户具有必要的仓库访问权限。</p>
+<h3 id="5-3-第三步：设计参数化构建"><a href="#5-3-第三步：设计参数化构建" class="headerlink" title="5.3 第三步：设计参数化构建"></a>5.3 第三步：设计参数化构建</h3><p>为了避免每次发布都需要修改 Jenkinsfile，本项目使用参数化构建控制 Git 分支、目标环境和部署方式。</p>
+<p>主要参数如下：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>BRANCH</code></td>
+<td>选择代码分支</td>
+<td><code>main</code>、<code>release</code></td>
+</tr>
+<tr>
+<td><code>DEPLOY_ENV</code></td>
+<td>选择部署环境</td>
+<td><code>TEST-131</code>、<code>PROD-102</code>、<code>PROD-101</code>、<code>PROD-ALL</code></td>
+</tr>
+<tr>
+<td><code>DEPLOY_MODE</code></td>
+<td>选择部署方式</td>
+<td>立即部署、定时部署</td>
+</tr>
+<tr>
+<td><code>DEPLOY_TIME</code></td>
+<td>指定部署时间</td>
+<td><code>2026-10-30 22:00</code></td>
+</tr>
+</tbody></table>
+<p>其中，<code>PROD-ALL</code> 表示按照 102 → 101 的顺序部署生产双节点。</p>
+<p>流水线通过参数检查阶段验证部署环境配置和定时部署时间。定时部署使用 <code>Asia/Shanghai</code> 时区，并要求计划时间晚于当前时间。</p>
+<p>此外，流水线设置了两个重要选项：</p>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">options &#123;</span><br><span class="line">    disableConcurrentBuilds()</span><br><span class="line">    timeout(<span class="attr">time:</span> <span class="number">24</span>, <span class="attr">unit:</span> <span class="string">&#x27;HOURS&#x27;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>disableConcurrentBuilds()</code> 用于避免同一个流水线任务并发执行；24 小时超时则为可能长时间等待的定时部署预留足够时间。</p>
+<h3 id="5-4-第四步：实现前端自动构建"><a href="#5-4-第四步：实现前端自动构建" class="headerlink" title="5.4 第四步：实现前端自动构建"></a>5.4 第四步：实现前端自动构建</h3><p>前端构建的主要流程包括：</p>
+<ol>
+<li>检查 Node.js 和 npm 版本。</li>
+<li>检查 <code>package.json</code> 和 <code>package-lock.json</code>。</li>
+<li>配置 npm 缓存目录及内部 npm 私服。</li>
+<li>计算依赖锁文件的 SHA256。</li>
+<li>根据缓存状态恢复 <code>node_modules</code> 或执行 <code>npm ci</code>。</li>
+<li>执行 <code>npm run build</code>。</li>
+<li>检查 <code>dist/index.html</code> 和 <code>dist/static</code> 是否存在。</li>
+</ol>
+<p>关键命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">npm ci \</span><br><span class="line">    --prefer-offline \</span><br><span class="line">    --no-audit \</span><br><span class="line">    --no-fund \</span><br><span class="line">    --registry=<span class="string">&quot;<span class="variable">$&#123;NPM_REGISTRY&#125;</span>&quot;</span></span><br><span class="line"></span><br><span class="line">npm run build</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>npm ci</code> 的前提是项目已经提交有效的 <code>package-lock.json</code>。</p>
+<p>与普通的 <code>npm install</code> 相比，<code>npm ci</code> 更适合基于锁文件执行可重复的 CI 构建。如果锁文件缺失，流水线应直接报错，而不是在自动化任务中临时生成一份未纳入版本管理的依赖锁文件。</p>
+<p>前端构建完成后，还需要确认：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">test</span> -f dist/index.html</span><br><span class="line"><span class="built_in">test</span> -d dist/static</span><br></pre></td></tr></table></figure>
+
+<p>只有前端产物符合预期，后续合并阶段才有可靠的输入。</p>
+<h3 id="5-5-第五步：实现后端自动构建"><a href="#5-5-第五步：实现后端自动构建" class="headerlink" title="5.5 第五步：实现后端自动构建"></a>5.5 第五步：实现后端自动构建</h3><p>后端使用 Maven 进行编译和打包。</p>
+<p>示例代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=<span class="string">&quot;<span class="variable">$&#123;BUILD_JAVA_HOME&#125;</span>&quot;</span></span><br><span class="line"><span class="built_in">export</span> PATH=<span class="string">&quot;<span class="variable">$JAVA_HOME</span>/bin:<span class="variable">$PATH</span>&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> java</span><br><span class="line"></span><br><span class="line">java -version</span><br><span class="line">javac -version</span><br><span class="line"></span><br><span class="line"><span class="string">&quot;<span class="variable">$&#123;MAVEN_HOME&#125;</span>/bin/mvn&quot;</span> \</span><br><span class="line">    clean package \</span><br><span class="line">    -DskipTests</span><br></pre></td></tr></table></figure>
+
+<p>构建完成后，流水线查找 WAR 文件，并在没有生成 WAR 时终止任务。</p>
+<p>需要特别注意：当前示例使用了 <code>-DskipTests</code>，这意味着该构建步骤不会执行常规测试用例。因此，构建成功不能直接等同于代码质量验证通过。</p>
+<p>后续可以根据项目实际情况，将单元测试、集成测试或其他质量检查纳入流水线。</p>
+<h3 id="5-6-第六步：合并前后端并覆盖环境配置"><a href="#5-6-第六步：合并前后端并覆盖环境配置" class="headerlink" title="5.6 第六步：合并前后端并覆盖环境配置"></a>5.6 第六步：合并前后端并覆盖环境配置</h3><p>前后端构建完成后，流水线先解压 WAR 文件，形成后端基础目录，再将前端 <code>dist</code> 文件复制到应用目录。</p>
+<p>目录结构大致如下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">package/</span><br><span class="line">└── mes200/</span><br><span class="line">    ├── index.html</span><br><span class="line">    ├── static/</span><br><span class="line">    └── WEB-INF/</span><br><span class="line">        └── classes/</span><br><span class="line">            ├── application.properties</span><br><span class="line">            └── ...</span><br></pre></td></tr></table></figure>
+
+<p>随后，根据目标环境选择配置目录：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">java/mes200-splendid/config/</span><br><span class="line">├── 131/</span><br><span class="line">├── 102/</span><br><span class="line">└── 101/</span><br></pre></td></tr></table></figure>
+
+<p>例如，生成 102 节点发布包时，将 <code>config/102</code> 下的文件复制到：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mes200/WEB-INF/classes/</span><br></pre></td></tr></table></figure>
+
+<p>对应命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cp</span> -a \</span><br><span class="line">    <span class="string">&quot;<span class="variable">$&#123;CONFIG_SRC&#125;</span>/.&quot;</span> \</span><br><span class="line">    <span class="string">&quot;<span class="variable">$&#123;STAGE_DIR&#125;</span>/<span class="variable">$&#123;APP_NAME&#125;</span>/WEB-INF/classes/&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>这种方式会复制配置目录中的全部文件和子目录，并覆盖目标目录中同名文件。</p>
+<p>完成配置覆盖后，需要检查关键文件是否存在，再将应用目录压缩为对应环境的 ZIP 包。</p>
+<h3 id="5-7-第七步：生成环境专用发布包"><a href="#5-7-第七步：生成环境专用发布包" class="headerlink" title="5.7 第七步：生成环境专用发布包"></a>5.7 第七步：生成环境专用发布包</h3><p>本项目根据部署环境生成不同的发布包：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">N131.mes200.zip</span><br><span class="line">N102.mes200.zip</span><br><span class="line">N101.mes200.zip</span><br></pre></td></tr></table></figure>
+
+<p>当选择 <code>PROD-ALL</code> 时，会同时生成：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">N102.mes200.zip</span><br><span class="line">N101.mes200.zip</span><br></pre></td></tr></table></figure>
+
+<p>每个发布包均使用对应环境的配置目录。</p>
+<p>打包后，需要检查 ZIP 内部是否存在：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mes200/index.html</span><br><span class="line">mes200/static/</span><br><span class="line">mes200/WEB-INF/classes/application.properties</span><br></pre></td></tr></table></figure>
+
+<p>这样可以在上传服务器之前，提前发现缺失文件、配置目录错误或者打包结构异常。</p>
+<h3 id="5-8-第八步：配置立即部署与定时部署"><a href="#5-8-第八步：配置立即部署与定时部署" class="headerlink" title="5.8 第八步：配置立即部署与定时部署"></a>5.8 第八步：配置立即部署与定时部署</h3><p>流水线支持两种部署模式。</p>
+<p><strong>立即部署：</strong> 构建、打包完成后，直接进入上传和部署阶段。</p>
+<p><strong>定时部署：</strong> 先完成构建与打包，再等待到指定时间执行上传和部署。</p>
+<p>这种设计可以将耗时较长的编译操作提前完成，减少计划发布时需要等待的构建时间。</p>
+<p>需要注意，定时部署等待期间，Jenkins 任务仍然处于执行状态。因此，应合理选择发布时间，并确认 Jenkins 服务、构建节点和相关网络在等待期间保持可用。</p>
+<h3 id="5-9-第九步：上传发布包并远程部署"><a href="#5-9-第九步：上传发布包并远程部署" class="headerlink" title="5.9 第九步：上传发布包并远程部署"></a>5.9 第九步：上传发布包并远程部署</h3><p>流水线使用 SCP 将发布包上传到目标服务器的 Webapps 目录，再通过 SSH 执行远程部署脚本。</p>
+<p>当前配置的目标环境如下：</p>
+<table>
+<thead>
+<tr>
+<th>环境</th>
+<th>服务器</th>
+<th>Tomcat 路径</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TEST-131</td>
+<td><code>172.16.xx.131</code></td>
+<td><code>/home/mes/apache-tomcat-9.0.54</code></td>
+</tr>
+<tr>
+<td>PROD-102</td>
+<td><code>172.16.xx.102</code></td>
+<td><code>/home/mes/apache-tomcat-9.0.54</code></td>
+</tr>
+<tr>
+<td>PROD-101</td>
+<td><code>172.16.xx.101</code></td>
+<td><code>/home/mes/tomcat/apache-tomcat-9.0.54</code></td>
+</tr>
+</tbody></table>
+<p>上传过程启用严格的 SSH 主机密钥检查：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">scp \</span><br><span class="line">    -i <span class="string">&quot;<span class="variable">$&#123;TARGET_SSH_KEY&#125;</span>&quot;</span> \</span><br><span class="line">    -P <span class="string">&quot;<span class="variable">$&#123;TARGET_PORT&#125;</span>&quot;</span> \</span><br><span class="line">    -o UserKnownHostsFile=/jenkins/home/.ssh/known_hosts \</span><br><span class="line">    -o StrictHostKeyChecking=<span class="built_in">yes</span> \</span><br><span class="line">    <span class="string">&quot;package/<span class="variable">$&#123;TARGET_PACKAGE_NAME&#125;</span>&quot;</span> \</span><br><span class="line">    <span class="string">&quot;<span class="variable">$&#123;TARGET_USER&#125;</span>@<span class="variable">$&#123;TARGET_HOST&#125;</span>:<span class="variable">$&#123;TARGET_WEBAPPS_DIR&#125;</span>/<span class="variable">$&#123;TARGET_PACKAGE_NAME&#125;</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>正式使用前，需要确认私钥、<code>known_hosts</code> 文件权限以及目标服务器 SSH 授权均已配置正确。</p>
+<p>严格主机密钥检查可以避免连接时无条件接受未知主机密钥，但前提是 <code>known_hosts</code> 中的记录可信且经过核实。</p>
+<h3 id="5-10-第十步：停止-Tomcat-并备份当前版本"><a href="#5-10-第十步：停止-Tomcat-并备份当前版本" class="headerlink" title="5.10 第十步：停止 Tomcat 并备份当前版本"></a>5.10 第十步：停止 Tomcat 并备份当前版本</h3><p>远程部署脚本先检查目标环境，然后停止 Tomcat。</p>
+<p>停止顺序为：</p>
+<ol>
+<li>尝试执行 <code>shutdown.sh</code>。</li>
+<li>等待 Tomcat 正常退出。</li>
+<li>尝试执行 <code>catalina.sh stop 10 -force</code>。</li>
+<li>仍未退出时发送 TERM 信号。</li>
+<li>最后使用 <code>kill -9</code> 作为强制停止手段。</li>
+</ol>
+<p>Tomcat 停止后，还需要检查 8005 和 8080 端口是否释放。</p>
+<p>随后，脚本将当前应用目录复制到临时备份目录，再替换正式备份目录 <code>B.F.mes200</code>。如果旧备份已经存在，则先将其保留到带时间戳的历史目录。</p>
+<p>例如：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">webapps/</span><br><span class="line">├── mes200/</span><br><span class="line">├── B.F.mes200/</span><br><span class="line">├── B.F.mes200.history.20261028153000/</span><br><span class="line">└── N102.mes200.zip</span><br></pre></td></tr></table></figure>
+
+<p>需要强调，<code>B.F.mes200</code> 保存的是本次部署前的当前版本，不一定永远是最初的旧版本。因此，历史目录同样重要。</p>
+<h3 id="5-11-第十一步：部署新版本并执行健康检查"><a href="#5-11-第十一步：部署新版本并执行健康检查" class="headerlink" title="5.11 第十一步：部署新版本并执行健康检查"></a>5.11 第十一步：部署新版本并执行健康检查</h3><p>备份完成后，脚本删除旧应用目录，解压新版本，并检查关键文件。</p>
+<p>随后启动 Tomcat，执行完整健康检查。</p>
+<p>主要检查内容如下：</p>
+<table>
+<thead>
+<tr>
+<th>检查项目</th>
+<th>判断目的</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>8080 端口与 PID</td>
+<td>确认 Tomcat 已监听业务端口</td>
+</tr>
+<tr>
+<td>实际 Java 路径</td>
+<td>确认 Tomcat 使用预期的 JDK</td>
+</tr>
+<tr>
+<td><code>/index.html</code></td>
+<td>检查前端入口是否返回 HTTP 200</td>
+</tr>
+<tr>
+<td>Spring 启动日志</td>
+<td>检查应用启动记录</td>
+</tr>
+<tr>
+<td><code>BeanDefinitionOverrideException</code></td>
+<td>发现特定 Spring Bean 注册冲突</td>
+</tr>
+<tr>
+<td>登录接口</td>
+<td>检查接口响应，重点识别 HTTP 404</td>
+</tr>
+</tbody></table>
+<p>例如，前端入口检查使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">curl -sS \</span><br><span class="line">    -o /dev/null \</span><br><span class="line">    -w <span class="string">&#x27;%&#123;http_code&#125;&#x27;</span> \</span><br><span class="line">    --connect-timeout 2 \</span><br><span class="line">    --max-time 5 \</span><br><span class="line">    http://127.0.0.1:8080/index.html</span><br></pre></td></tr></table></figure>
+
+<p>当前脚本最多等待约 180 秒获取 Tomcat PID，并最多等待约 180 秒获取前端入口的 HTTP 200 响应。</p>
+<p>如果关键检查失败，脚本会进入错误处理流程，并在符合回滚条件时尝试恢复旧版本。</p>
+<p>这里有一个值得注意的细节：当前登录接口检查将 HTTP 404 作为明确失败条件；其他非 200 响应主要记录为 WARNING。因此，如果希望部署成功必须满足登录接口的严格业务规则，需要进一步调整判定条件。</p>
+<h3 id="5-12-第十二步：实现失败回滚"><a href="#5-12-第十二步：实现失败回滚" class="headerlink" title="5.12 第十二步：实现失败回滚"></a>5.12 第十二步：实现失败回滚</h3><p>部署过程中发生错误时，远程脚本通过错误处理机制尝试执行回滚。</p>
+<p>主要流程如下：</p>
+<ol>
+<li>停止当前 Tomcat。</li>
+<li>删除部署失败的新版本目录。</li>
+<li>删除本次上传的 ZIP 文件。</li>
+<li>优先使用 <code>B.F.mes200</code> 作为恢复来源。</li>
+<li>如果正式备份无效，尝试查找历史备份目录。</li>
+<li>将备份复制回 <code>mes200</code>。</li>
+<li>重新启动 Tomcat。</li>
+<li>对恢复后的版本执行完整健康检查。</li>
+</ol>
+<p>回滚的目标不仅是恢复文件，还要确认恢复后的应用能够正常启动。</p>
+<p>不过，回滚并不是绝对成功的保证。如果备份本身不可用、磁盘空间不足、权限异常或者原版本也存在问题，回滚仍可能失败。因此，生产发布前仍应确保有可用备份，并验证实际恢复流程。</p>
+<h3 id="5-13-第十三步：实现生产双节点顺序部署"><a href="#5-13-第十三步：实现生产双节点顺序部署" class="headerlink" title="5.13 第十三步：实现生产双节点顺序部署"></a>5.13 第十三步：实现生产双节点顺序部署</h3><p>选择 <code>PROD-ALL</code> 时，流水线按照以下顺序执行：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">172.16.xx.102</span><br><span class="line">       |</span><br><span class="line">       v</span><br><span class="line">部署 + 健康检查</span><br><span class="line">       |</span><br><span class="line">       v</span><br><span class="line">检查通过后继续</span><br><span class="line">       |</span><br><span class="line">       v</span><br><span class="line">172.16.xx.101</span><br><span class="line">       |</span><br><span class="line">       v</span><br><span class="line">部署 + 健康检查</span><br></pre></td></tr></table></figure>
+
+<p>如果 102 节点部署阶段报错，流水线会因该阶段失败而停止继续执行 101 节点的部署。</p>
+<p>这种顺序可以避免在第一个节点尚未通过检查时，就继续更新第二个节点。</p>
+<p>但需要区分两种情况：</p>
+<ul>
+<li><strong>单节点回滚：</strong> 当前失败节点尝试恢复自己的部署前版本。</li>
+<li><strong>双节点整体回滚：</strong> 如果 102 已经部署成功，而 101 后续部署失败，当前流程不会自动将 102 恢复到本次流水线执行前的版本。</li>
+</ul>
+<p>因此，当前方案具备单节点失败回滚能力，但尚不能视为完整的双节点事务性发布或全局回滚机制。</p>
+<h3 id="5-14-第十四步：查看-Jenkins-构建结果"><a href="#5-14-第十四步：查看-Jenkins-构建结果" class="headerlink" title="5.14 第十四步：查看 Jenkins 构建结果"></a>5.14 第十四步：查看 Jenkins 构建结果</h3><p>每次流水线执行完成后，可以通过 Jenkins 控制台查看阶段执行日志和最终结果。</p>
+<p>当前流水线记录的主要耗时包括：</p>
+<ul>
+<li>前后端代码检出。</li>
+<li>npm 依赖安装或缓存恢复。</li>
+<li>npm 前端构建。</li>
+<li>Maven 后端构建。</li>
+<li>前后端合并。</li>
+<li>发布包生成。</li>
+<li>发布包上传。</li>
+<li>远程部署。</li>
+</ul>
+<p>同时，流水线通过 <code>post</code> 区块记录成功、失败状态，并归档 <code>package/*.zip</code> 发布产物。</p>
+<p>排查问题时，应重点区分：</p>
+<ol>
+<li>代码检出失败。</li>
+<li>前端依赖或编译失败。</li>
+<li>Maven 编译失败。</li>
+<li>发布包缺失必要文件。</li>
+<li>SSH 连接或文件上传失败。</li>
+<li>Tomcat 启动或应用健康检查失败。</li>
+<li>自动回滚失败。</li>
+</ol>
+<p>这样可以根据失败阶段快速缩小排查范围，而不是只关注最终的 SUCCESS 或 FAILURE 状态。</p>
+<h2 id="六、实施成果与收益"><a href="#六、实施成果与收益" class="headerlink" title="六、实施成果与收益"></a>六、实施成果与收益</h2><h3 id="6-1-建立统一的自动化交付流程"><a href="#6-1-建立统一的自动化交付流程" class="headerlink" title="6.1 建立统一的自动化交付流程"></a>6.1 建立统一的自动化交付流程</h3><p>通过 Jenkins Pipeline，将前后端代码检出、并行构建、环境配置覆盖、发布包生成、文件上传、Tomcat 部署及健康检查统一到一个执行流程中。</p>
+<p>减少了人工切换工具和逐步执行命令的需要，也使发布步骤更加标准化。</p>
+<h3 id="6-2-提升构建效率"><a href="#6-2-提升构建效率" class="headerlink" title="6.2 提升构建效率"></a>6.2 提升构建效率</h3><p>前端和后端采用并行构建，减少了原本必须串行等待的时间。</p>
+<p>前端进一步使用 npm 缓存与 <code>node_modules</code> 缓存，在依赖锁文件未发生变化时可以恢复缓存，避免重复安装全部依赖。</p>
+<p>实际效率提升幅度需要结合 Jenkins 每次运行记录进行统计，不能仅根据启用了缓存就直接认定具体节省了多少时间。</p>
+<h3 id="6-3-降低多环境配置混用风险"><a href="#6-3-降低多环境配置混用风险" class="headerlink" title="6.3 降低多环境配置混用风险"></a>6.3 降低多环境配置混用风险</h3><p>通过 <code>config/131</code>、<code>config/102</code> 和 <code>config/101</code> 目录分别管理环境配置，并在发布包生成阶段覆盖对应配置文件。</p>
+<p>不同目标环境使用独立的发布包，减少了部署过程中手工调整配置的需求。</p>
+<h3 id="6-4-提升生产发布的可控性"><a href="#6-4-提升生产发布的可控性" class="headerlink" title="6.4 提升生产发布的可控性"></a>6.4 提升生产发布的可控性</h3><p>通过参数检查、定时部署、严格 SSH 主机密钥校验、部署前检查和阶段日志记录，提升了发布流程的可控性。</p>
+<p>生产双节点采用先 102、后 101 的顺序，并要求第一个节点完成部署流程后才进入第二个节点。</p>
+<h3 id="6-5-增强故障恢复能力"><a href="#6-5-增强故障恢复能力" class="headerlink" title="6.5 增强故障恢复能力"></a>6.5 增强故障恢复能力</h3><p>部署脚本能够在满足回滚条件时，自动停止 Tomcat、恢复备份目录并重新启动服务。</p>
+<p>回滚后继续执行健康检查，有助于判断旧版本是否恢复到可运行状态。</p>
+<p>同时，历史备份目录为后续问题追溯和版本恢复提供了额外依据。</p>
+<h3 id="6-6-为后续持续交付优化奠定基础"><a href="#6-6-为后续持续交付优化奠定基础" class="headerlink" title="6.6 为后续持续交付优化奠定基础"></a>6.6 为后续持续交付优化奠定基础</h3><p>当前流程已经具备自动构建、环境专用打包、部署检查和单节点回滚等能力。</p>
+<p>后续可以继续完善以下内容：</p>
+<ol>
+<li>增加自动化测试及代码质量检查。</li>
+<li>严格定义登录接口的健康检查标准。</li>
+<li>建立生产双节点全局回滚机制。</li>
+<li>增加发布前人工审批和生产发布权限控制。</li>
+<li>对构建耗时、部署成功率和回滚次数进行统计。</li>
+<li>优化备份保留策略，避免历史目录持续增长。</li>
+<li>增加发布通知和异常告警。</li>
+</ol>
+<h2 id="七、总结"><a href="#七、总结" class="headerlink" title="七、总结"></a>七、总结</h2><p>本项目以制造企业 MES 系统为实践场景，基于 Jenkins Pipeline，将原本分散的构建、打包、上传和部署操作整合为统一的自动化交付流程。</p>
+<p>通过前后端并行构建、npm 依赖缓存、环境配置隔离、定时发布、生产双节点顺序部署、健康检查和失败回滚，提升了软件发布过程的标准化程度与可追踪性。</p>
+<p>需要认识到，自动化部署并不意味着生产发布不存在风险。只有将自动化构建、质量验证、部署监控、备份恢复和发布治理结合起来，才能逐步形成稳定、可靠、可持续优化的制造企业 DevOps 交付体系。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Gitea/" rel="tag"># Gitea</a>
+              <a href="/tags/Maven/" rel="tag"># Maven</a>
+              <a href="/tags/Jenkins/" rel="tag"># Jenkins</a>
+              <a href="/tags/CI-CD/" rel="tag"># CI/CD</a>
+              <a href="/tags/MES/" rel="tag"># MES</a>
+              <a href="/tags/Vue/" rel="tag"># Vue</a>
+              <a href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96%E9%83%A8%E7%BD%B2/" rel="tag"># 自动化部署</a>
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/02-%E9%A1%B9%E7%9B%AE/06-FR/%E5%9F%BA%E4%BA%8E%E5%B8%86%E8%BD%AF%E6%8A%A5%E8%A1%A8%20+%20MES%20+%20SpringBoot%E5%BA%94%E7%94%A8%E7%B3%BB%E7%BB%9F%20%E7%9A%84%20Q-Time%20%E8%87%AA%E5%8A%A8%E5%8C%96%E6%8A%A5%E8%A1%A8%E5%AE%9E%E6%88%98/" rel="prev" title="基于帆软报表 + MES + SpringBoot 的 Q-Time 自动化报表实战">
+                  <i class="fa fa-angle-left"></i> 基于帆软报表 + MES + SpringBoot 的 Q-Time 自动化报表实战
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">mrko</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+      <span>站点总字数：</span>
+    <span title="站点总字数">33k</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+      <span>站点阅读时长 &asymp;</span>
+    <span title="站点阅读时长">2:01</span>
+  </span>
+</div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="reading-progress-bar"></div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
